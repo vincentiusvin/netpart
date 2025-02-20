@@ -47,7 +47,7 @@ func MakeControlPlane(ctx context.Context) *ControlPlane {
 			fmt.Println(err)
 			time.Sleep(500 * time.Millisecond)
 		} else {
-			fmt.Println("Docker daemon connected!")
+			fmt.Println("docker daemon connected!")
 			break
 		}
 	}
@@ -62,7 +62,7 @@ func (c *ControlPlane) PullImage(ctx context.Context) {
 		return
 	}
 
-	fmt.Println("Pulling image...")
+	fmt.Println("pulling image...")
 	res, err := c.cli.ImagePull(ctx, POSTGRES_IMAGE, image.PullOptions{})
 	if err != nil {
 		panic(err)
@@ -71,7 +71,7 @@ func (c *ControlPlane) PullImage(ctx context.Context) {
 	io.Copy(io.Discard, res)
 
 	c.pulled = true
-	fmt.Println("Image pulled!")
+	fmt.Println("image pulled!")
 }
 
 func (c *ControlPlane) AddInstance(ctx context.Context, name string) Instance {
@@ -92,7 +92,7 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) Instance {
 		panic(err)
 	}
 
-	fmt.Printf("Started container %v (%v)\n", name, ctr.ID)
+	fmt.Printf("started container %v (%v)\n", name, ctr.ID)
 
 	net, err := c.cli.NetworkCreate(ctx, name, network.CreateOptions{})
 
@@ -168,7 +168,7 @@ func (c *ControlPlane) KillInstance(ctx context.Context, inst Instance) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Killed network %v\n", inst.network_id)
+	fmt.Printf("killed network %v\n", inst.network_id)
 
 	err = c.cli.ContainerRemove(ctx, inst.container_id, container.RemoveOptions{
 		Force: true,
@@ -176,7 +176,7 @@ func (c *ControlPlane) KillInstance(ctx context.Context, inst Instance) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Killed container %v\n", inst.container_id)
+	fmt.Printf("killed container %v\n", inst.container_id)
 }
 
 func (c *ControlPlane) Cleanup(ctx context.Context) {
@@ -222,5 +222,5 @@ func (c *ControlPlane) Cleanup(ctx context.Context) {
 	}
 
 	wg.Wait()
-	fmt.Println("Containers and networks cleaned...")
+	fmt.Println("containers and networks cleaned...")
 }
