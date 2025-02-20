@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -21,10 +22,21 @@ type ControlPlane struct {
 	cli *client.Client
 }
 
-func MakeControlPlane() *ControlPlane {
+func MakeControlPlane(ctx context.Context) *ControlPlane {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		panic(err)
+	}
+
+	for {
+		_, err := cli.Ping(ctx)
+		if err != nil {
+			fmt.Println(err)
+			time.Sleep(500 * time.Millisecond)
+		} else {
+			fmt.Println("Docker daemon connected!")
+			break
+		}
 	}
 
 	return &ControlPlane{
@@ -79,9 +91,10 @@ func (c *ControlPlane) KillDB(ctx context.Context, id string) {
 }
 
 func main() {
-	c := MakeControlPlane()
 	ctx := context.Background()
+	c := MakeControlPlane(ctx)
 
+	ctx = context.Background()
 	id := c.AddDB(ctx, "db1")
 	c.ListDBs(ctx)
 	c.KillDB(ctx, id)

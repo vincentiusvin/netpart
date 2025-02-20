@@ -1,0 +1,5 @@
+services:
+  control:
+    container_name: netpart-control
+    build: "./"
+    privileged: true
