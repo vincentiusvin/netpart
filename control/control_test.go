@@ -110,13 +110,27 @@ func TestDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name := "db1"
-	inst, err := c.AddInstance(ctx, name)
+	active, err := c.AddInstance(ctx, "db1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = c.SetupMaster(ctx, inst)
+	passive, err := c.AddInstance(ctx, "db2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Connect(ctx, active, passive)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.SetupActive(ctx, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.SetupStandby(ctx, passive, active)
 	if err != nil {
 		t.Fatal(err)
 	}

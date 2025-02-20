@@ -8,8 +8,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 )
 
-const SQL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
-
 func (c *ControlPlane) runCommand(ctx context.Context, inst Instance, cmd []string) error {
 	conf, err := c.cli.ContainerExecCreate(ctx, inst.ContainerID, container.ExecOptions{
 		User: POSTGRES_USER,
@@ -46,19 +44,55 @@ func (c *ControlPlane) runCommand(ctx context.Context, inst Instance, cmd []stri
 	return <-done
 }
 
-func (c *ControlPlane) SetupMaster(ctx context.Context, inst Instance) error {
+func (c *ControlPlane) RunQuery(ctx context.Context, inst Instance, query string) error {
 	for {
-		err := c.runCommand(ctx, inst, []string{"psql", "-l"})
+		err := c.runCommand(ctx, inst, []string{"psql", "-d", POSTGRES_DB, "-c", "SELECT 1=1;"})
 		if err == nil {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	err := c.runCommand(ctx, inst, []string{"psql", "-d", POSTGRES_DB, "-c", SQL})
+	err := c.runCommand(ctx, inst, []string{"psql", "-d", POSTGRES_DB, "-c", query})
+	if err != nil {
+		return fmt.Errorf("cannot run query %v. err: %w", query, err)
+	}
+	return nil
+}
+
+const DDL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
+const PUB = "CREATE PUBLICATION pub FOR TABLE kv;"
+
+func (c *ControlPlane) SetupActive(ctx context.Context, inst Instance) error {
+	err := c.RunQuery(ctx, inst, DDL)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("master setup at %v (%v)\n", inst.Name, inst.ContainerID)
+
+	err = c.RunQuery(ctx, inst, PUB)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("active setup at %v (%v)\n", inst.Name, inst.ContainerID)
+	return nil
+}
+
+func (c *ControlPlane) SetupStandby(ctx context.Context, inst Instance, active Instance) error {
+	err := c.RunQuery(ctx, inst, DDL)
+	if err != nil {
+		return err
+	}
+
+	sub := fmt.Sprintf(
+		"CREATE SUBSCRIPTION sub CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub;",
+		active.Name, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
+
+	err = c.RunQuery(ctx, inst, sub)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("standby setup at %v (%v)\n", inst.Name, inst.ContainerID)
 	return nil
 }
