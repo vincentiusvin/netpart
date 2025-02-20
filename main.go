@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -19,7 +20,8 @@ var ENVS = [3]string{
 }
 
 type ControlPlane struct {
-	cli *client.Client
+	cli    *client.Client
+	pulled bool
 }
 
 func MakeControlPlane(ctx context.Context) *ControlPlane {
@@ -44,12 +46,24 @@ func MakeControlPlane(ctx context.Context) *ControlPlane {
 	}
 }
 
-func (c *ControlPlane) AddDB(ctx context.Context, name string) string {
-	_, err := c.cli.ImagePull(ctx, POSTGRES_IMAGE, image.PullOptions{})
+func (c *ControlPlane) PullImage(ctx context.Context) {
+	if c.pulled {
+		return
+	}
+
+	fmt.Println("Pulling image...")
+	res, err := c.cli.ImagePull(ctx, POSTGRES_IMAGE, image.PullOptions{})
 	if err != nil {
 		panic(err)
 	}
+	defer res.Close()
+	io.Copy(io.Discard, res)
 
+	c.pulled = true
+	fmt.Println("Image pulled!")
+}
+
+func (c *ControlPlane) AddDB(ctx context.Context, name string) string {
 	ctr, err := c.cli.ContainerCreate(ctx, &container.Config{
 		Image: POSTGRES_IMAGE,
 		Env:   ENVS[:],
@@ -93,8 +107,8 @@ func (c *ControlPlane) KillDB(ctx context.Context, id string) {
 func main() {
 	ctx := context.Background()
 	c := MakeControlPlane(ctx)
+	c.PullImage(ctx)
 
-	ctx = context.Background()
 	id := c.AddDB(ctx, "db1")
 	c.ListDBs(ctx)
 	c.KillDB(ctx, id)
