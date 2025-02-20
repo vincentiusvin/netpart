@@ -24,9 +24,9 @@ var ENVS = [3]string{
 }
 
 type Instance struct {
-	name         string
-	container_id string
-	network_id   string
+	Name        string
+	ContainerID string
+	NetworkID   string
 }
 
 type ControlPlane struct {
@@ -35,10 +35,10 @@ type ControlPlane struct {
 	servers []Instance
 }
 
-func MakeControlPlane(ctx context.Context) *ControlPlane {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+func MakeControlPlane(ctx context.Context, ops ...client.Opt) (*ControlPlane, error) {
+	cli, err := client.NewClientWithOpts(ops...)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	for {
@@ -54,27 +54,28 @@ func MakeControlPlane(ctx context.Context) *ControlPlane {
 
 	return &ControlPlane{
 		cli: cli,
-	}
+	}, nil
 }
 
-func (c *ControlPlane) PullImage(ctx context.Context) {
+func (c *ControlPlane) PullImage(ctx context.Context) error {
 	if c.pulled {
-		return
+		return nil
 	}
 
 	fmt.Println("pulling image...")
 	res, err := c.cli.ImagePull(ctx, POSTGRES_IMAGE, image.PullOptions{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer res.Close()
 	io.Copy(io.Discard, res)
 
 	c.pulled = true
 	fmt.Println("image pulled!")
+	return nil
 }
 
-func (c *ControlPlane) AddInstance(ctx context.Context, name string) Instance {
+func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, error) {
 	name = PREFIX + name
 
 	ctr, err := c.cli.ContainerCreate(ctx, &container.Config{
@@ -83,13 +84,13 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) Instance {
 	}, nil, nil, nil, name)
 
 	if err != nil {
-		panic(err)
+		return Instance{}, err
 	}
 
 	err = c.cli.ContainerStart(ctx, ctr.ID, container.StartOptions{})
 
 	if err != nil {
-		panic(err)
+		return Instance{}, err
 	}
 
 	fmt.Printf("started container %v (%v)\n", name, ctr.ID)
@@ -97,33 +98,33 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) Instance {
 	net, err := c.cli.NetworkCreate(ctx, name, network.CreateOptions{})
 
 	if err != nil {
-		panic(err)
+		return Instance{}, err
 	}
 
 	err = c.cli.NetworkConnect(ctx, net.ID, ctr.ID, nil)
 	if err != nil {
-		panic(err)
+		return Instance{}, err
 	}
 
 	inst := Instance{
-		container_id: ctr.ID,
-		network_id:   net.ID,
-		name:         name,
+		ContainerID: ctr.ID,
+		NetworkID:   net.ID,
+		Name:        name,
 	}
 
 	c.servers = append(c.servers, inst)
 
-	return inst
+	return inst, nil
 }
 
-func (c *ControlPlane) ListInstances(ctx context.Context) []Instance {
+func (c *ControlPlane) ListInstances(ctx context.Context) ([]Instance, error) {
 	containers, err := c.cli.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	networks, err := c.cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	lkp := make(map[string]*Instance)
@@ -135,8 +136,8 @@ func (c *ControlPlane) ListInstances(ctx context.Context) []Instance {
 		}
 
 		lkp[name] = &Instance{
-			name:         name,
-			container_id: c.ID,
+			Name:        name,
+			ContainerID: c.ID,
 		}
 	}
 
@@ -149,45 +150,48 @@ func (c *ControlPlane) ListInstances(ctx context.Context) []Instance {
 		if inst == nil {
 			panic(fmt.Errorf("found unused network: %v (%v)", n.Name, n.ID))
 		}
-		lkp[n.Name].network_id = n.ID
+		lkp[n.Name].NetworkID = n.ID
 	}
 
 	ret := make([]Instance, 0)
 	for _, c := range lkp {
-		if c.network_id == "" {
-			panic(fmt.Errorf("found unconnected container: %v (%v)", c.name, c.container_id))
+		if c.NetworkID == "" {
+			panic(fmt.Errorf("found unconnected container: %v (%v)", c.Name, c.ContainerID))
 		}
 		ret = append(ret, *c)
 	}
 
-	return ret
+	return ret, nil
 }
 
-func (c *ControlPlane) KillInstance(ctx context.Context, inst Instance) {
-	err := c.cli.NetworkRemove(ctx, inst.network_id)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("killed network %v\n", inst.network_id)
-
-	err = c.cli.ContainerRemove(ctx, inst.container_id, container.RemoveOptions{
+func (c *ControlPlane) KillInstance(ctx context.Context, inst Instance) error {
+	err := c.cli.ContainerRemove(ctx, inst.ContainerID, container.RemoveOptions{
 		Force: true,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
-	fmt.Printf("killed container %v\n", inst.container_id)
+	fmt.Printf("killed container %v\n", inst.ContainerID)
+
+	err = c.cli.NetworkRemove(ctx, inst.NetworkID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("killed network %v\n", inst.NetworkID)
+	return nil
 }
 
-func (c *ControlPlane) Cleanup(ctx context.Context) {
+func (c *ControlPlane) Cleanup(ctx context.Context) error {
 	containers, err := c.cli.ContainerList(ctx, container.ListOptions{
 		All: true,
 	})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	var wg sync.WaitGroup
+	errs := make(chan error)
 
 	for _, cont := range containers {
 		name := cont.Names[0][1:]
@@ -198,9 +202,12 @@ func (c *ControlPlane) Cleanup(ctx context.Context) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.cli.ContainerRemove(ctx, cont.ID, container.RemoveOptions{
+			err := c.cli.ContainerRemove(ctx, cont.ID, container.RemoveOptions{
 				Force: true,
 			})
+			if err != nil {
+				errs <- err
+			}
 		}()
 	}
 
@@ -217,10 +224,22 @@ func (c *ControlPlane) Cleanup(ctx context.Context) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			c.cli.NetworkRemove(ctx, net.ID)
+			err := c.cli.NetworkRemove(ctx, net.ID)
+			if err != nil {
+				errs <- err
+			}
 		}()
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errs)
+	}()
+
+	for err := range errs {
+		return err
+	}
+
 	fmt.Println("containers and networks cleaned...")
+	return nil
 }
