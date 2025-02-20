@@ -85,6 +85,7 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, 
 	ctr, err := c.cli.ContainerCreate(ctx, &container.Config{
 		Image: POSTGRES_IMAGE,
 		Env:   ENVS[:],
+		Cmd:   []string{"postgres", "-c", "wal_level=logical"},
 	}, nil, nil, nil, name)
 
 	if err != nil {
