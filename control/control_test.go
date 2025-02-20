@@ -101,5 +101,23 @@ func TestConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
+func TestDatabase(t *testing.T) {
+	ctx := context.Background()
+	c, err := getTestControlPlane()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name := "db1"
+	inst, err := c.AddInstance(ctx, name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.SetupMaster(ctx, inst)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

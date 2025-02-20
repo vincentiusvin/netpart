@@ -17,10 +17,14 @@ import (
 const POSTGRES_IMAGE = "postgres:16.3-alpine3.20"
 const PREFIX = "netpart-"
 
+const POSTGRES_USER = "postgres"
+const POSTGRES_PASSWORD = "postgres"
+const POSTGRES_DB = "main"
+
 var ENVS = [3]string{
-	"POSTGRES_USER=postgres",
-	"POSTGRES_PASSWORD=postgres",
-	"POSTGRES_DB=main",
+	"POSTGRES_USER=" + POSTGRES_USER,
+	"POSTGRES_PASSWORD=" + POSTGRES_PASSWORD,
+	"POSTGRES_DB=" + POSTGRES_DB,
 }
 
 type Instance struct {
