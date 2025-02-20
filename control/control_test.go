@@ -33,7 +33,7 @@ func TestCleanup(t *testing.T) {
 	c.ListInstances(ctx)
 }
 
-func TestMain(t *testing.T) {
+func TestProvision(t *testing.T) {
 	ctx := context.Background()
 	c, err := getTestControlPlane()
 	if err != nil {
@@ -74,4 +74,32 @@ func TestMain(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+func TestConnection(t *testing.T) {
+	ctx := context.Background()
+	c, err := getTestControlPlane()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	names := []string{
+		"db1", "db2", "db3",
+	}
+
+	instances := make([]control.Instance, len(names))
+
+	for i, name := range names {
+		inst, err := c.AddInstance(ctx, name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		instances[i] = inst
+	}
+
+	err = c.Connect(ctx, instances[0], instances[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
 }

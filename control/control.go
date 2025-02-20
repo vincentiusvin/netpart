@@ -211,6 +211,8 @@ func (c *ControlPlane) Cleanup(ctx context.Context) error {
 		}()
 	}
 
+	wg.Wait()
+
 	networks, err := c.cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
 		panic(err)
@@ -241,5 +243,14 @@ func (c *ControlPlane) Cleanup(ctx context.Context) error {
 	}
 
 	fmt.Println("containers and networks cleaned...")
+	return nil
+}
+
+func (c *ControlPlane) Connect(ctx context.Context, inst1 Instance, inst2 Instance) error {
+	res := c.cli.NetworkConnect(ctx, inst1.NetworkID, inst2.ContainerID, nil)
+	if res != nil {
+		return res
+	}
+	fmt.Printf("connected %v to %v\n", inst1.Name, inst2.Name)
 	return nil
 }
