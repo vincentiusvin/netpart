@@ -74,7 +74,7 @@ func (c *ControlPlane) SetupActive(ctx context.Context, inst Instance) error {
 		return err
 	}
 
-	fmt.Printf("active setup at %v (%v)\n", inst.Name, inst.ContainerID)
+	fmt.Printf("active setup at %v\n", inst.Name)
 	return nil
 }
 
@@ -93,6 +93,6 @@ func (c *ControlPlane) SetupStandby(ctx context.Context, inst Instance, active I
 		return err
 	}
 
-	fmt.Printf("standby setup at %v (%v)\n", inst.Name, inst.ContainerID)
+	fmt.Printf("standby setup at %v\n", inst.Name)
 	return nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 )
 
 const POSTGRES_IMAGE = "postgres:16.3-alpine3.20"
@@ -31,6 +32,7 @@ type Instance struct {
 	Name        string
 	ContainerID string
 	NetworkID   string
+	Port        string
 }
 
 type ControlPlane struct {
@@ -82,11 +84,24 @@ func (c *ControlPlane) PullImage(ctx context.Context) error {
 func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, error) {
 	name = PREFIX + name
 
+	portMap := nat.PortMap{
+		"5432/tcp": []nat.PortBinding{
+			{
+				HostIP:   "0.0.0.0",
+				HostPort: "0", // get any unused port
+			},
+		},
+	}
+
+	hostConfig := &container.HostConfig{
+		PortBindings: portMap,
+	}
+
 	ctr, err := c.cli.ContainerCreate(ctx, &container.Config{
 		Image: POSTGRES_IMAGE,
 		Env:   ENVS[:],
 		Cmd:   []string{"postgres", "-c", "wal_level=logical"},
-	}, nil, nil, nil, name)
+	}, hostConfig, nil, nil, name)
 
 	if err != nil {
 		return Instance{}, err
@@ -98,7 +113,17 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, 
 		return Instance{}, err
 	}
 
-	fmt.Printf("started container %v (%v)\n", name, ctr.ID)
+	inspect, err := c.cli.ContainerInspect(ctx, ctr.ID)
+	if err != nil {
+		return Instance{}, err
+	}
+
+	portInfo := inspect.NetworkSettings.Ports["5432/tcp"][0].HostPort
+	if portInfo == "" {
+		return Instance{}, fmt.Errorf("failed to bind instance port for %v", name)
+	}
+
+	fmt.Printf("started container %v at port %v\n", name, portInfo)
 
 	net, err := c.cli.NetworkCreate(ctx, name, network.CreateOptions{})
 
@@ -115,6 +140,7 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, 
 		ContainerID: ctr.ID,
 		NetworkID:   net.ID,
 		Name:        name,
+		Port:        portInfo,
 	}
 
 	c.servers = append(c.servers, inst)
@@ -143,6 +169,7 @@ func (c *ControlPlane) ListInstances(ctx context.Context) ([]Instance, error) {
 		lkp[name] = &Instance{
 			Name:        name,
 			ContainerID: c.ID,
+			Port:        fmt.Sprint(c.Ports[0].PublicPort),
 		}
 	}
 
@@ -176,14 +203,14 @@ func (c *ControlPlane) KillInstance(ctx context.Context, inst Instance) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("killed container %v\n", inst.ContainerID)
+	fmt.Printf("killed container %v\n", inst.Name)
 
 	err = c.cli.NetworkRemove(ctx, inst.NetworkID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("killed network %v\n", inst.NetworkID)
+	fmt.Printf("killed network %v\n", inst.Name)
 	return nil
 }
 
