@@ -6,9 +6,31 @@ services:
     environment:
       - DOCKER_HOST=unix:///mnt/docker.sock
     volumes:
-      - ./sock/:/mnt/
+      - dockersock:/mnt/
+    networks:
+      - control-plane
     healthcheck:
       test: ["CMD-SHELL", "docker", "version"]
       interval: 3s
       timeout: 3s
       retries: 5
+  control:
+    command: "sleep 1000000"
+    container_name: netpart-control
+    build: "./"
+    environment:
+      - DOCKER_HOST=unix:///mnt/docker.sock
+    volumes:
+      - dockersock:/mnt/
+      - ./src:/app/
+    networks:
+      - control-plane
+    depends_on:
+      dind:
+        condition: "service_healthy"
+
+volumes:
+  dockersock:
+
+networks:
+  control-plane:

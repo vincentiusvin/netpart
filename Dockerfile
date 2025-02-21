@@ -4,4 +4,4 @@ COPY ./src/go.mod ./src/go.sum ./
 RUN go mod download
 COPY ./src/ ./
 RUN go build -o /netpartctrl
-CMD [ "/netpartctrl" ]
+CMD /netpartctrl

@@ -8,11 +8,9 @@ import (
 	"github.com/docker/docker/client"
 )
 
-const TEST_SOCKET = "unix://../sock/docker.sock"
-
 func getTestControlPlane() (*control.ControlPlane, error) {
 	ctx := context.Background()
-	c, err := control.MakeControlPlane(ctx, client.WithHost(TEST_SOCKET))
+	c, err := control.MakeControlPlane(ctx, client.FromEnv)
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,7 @@ const POSTGRES_PASSWORD = "postgres"
 const POSTGRES_DB = "main"
 
 func getConn(ctx context.Context, port string) (*pgx.Conn, error) {
-	connString := "postgresql://" + POSTGRES_USER + ":" + POSTGRES_PASSWORD + "@localhost:" + port + "/" + POSTGRES_DB
+	connString := "postgresql://" + POSTGRES_USER + ":" + POSTGRES_PASSWORD + "@dind:" + port + "/" + POSTGRES_DB
 	conn, err := pgx.Connect(ctx, connString)
 	if err != nil {
 		return nil, err
