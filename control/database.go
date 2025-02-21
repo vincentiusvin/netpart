@@ -3,73 +3,40 @@ package control
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/docker/docker/api/types/container"
+	"github.com/jackc/pgx/v5"
 )
 
-func (c *ControlPlane) runCommand(ctx context.Context, inst Instance, cmd []string) error {
-	conf, err := c.cli.ContainerExecCreate(ctx, inst.ContainerID, container.ExecOptions{
-		User: POSTGRES_USER,
-		Cmd:  cmd,
-	})
+const POSTGRES_USER = "postgres"
+const POSTGRES_PASSWORD = "postgres"
+const POSTGRES_DB = "main"
+
+func getConn(ctx context.Context, port string) (*pgx.Conn, error) {
+	connString := "postgresql://" + POSTGRES_USER + ":" + POSTGRES_PASSWORD + "@localhost:" + port + "/" + POSTGRES_DB
+	conn, err := pgx.Connect(ctx, connString)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	err = c.cli.ContainerExecStart(ctx, conf.ID, container.ExecStartOptions{})
-	if err != nil {
-		return err
-	}
-
-	done := make(chan error)
-	go func() {
-		for {
-			ins, err := c.cli.ContainerExecInspect(ctx, conf.ID)
-			if ins.Running {
-				time.Sleep(100 * time.Millisecond)
-				continue
-			}
-			if err != nil {
-				done <- err
-			} else if ins.ExitCode != 0 {
-				done <- fmt.Errorf("failed command for %v. pid: %v. exit code: %v", inst.Name, ins.Pid, ins.ExitCode)
-			} else {
-				close(done)
-			}
-			break
-		}
-	}()
-
-	return <-done
-}
-
-func (c *ControlPlane) RunQuery(ctx context.Context, inst Instance, query string) error {
-	for {
-		err := c.runCommand(ctx, inst, []string{"psql", "-d", POSTGRES_DB, "-c", "SELECT 1=1;"})
-		if err == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-
-	err := c.runCommand(ctx, inst, []string{"psql", "-d", POSTGRES_DB, "-c", query})
-	if err != nil {
-		return fmt.Errorf("cannot run query %v. err: %w", query, err)
-	}
-	return nil
+	return conn, nil
 }
 
 const DDL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
 const PUB = "CREATE PUBLICATION pub FOR TABLE kv;"
 
 func (c *ControlPlane) SetupActive(ctx context.Context, inst Instance) error {
-	err := c.RunQuery(ctx, inst, DDL)
+	conn, err := getConn(ctx, inst.Port)
 	if err != nil {
 		return err
 	}
 
-	err = c.RunQuery(ctx, inst, PUB)
+	defer conn.Close(ctx)
+
+	_, err = conn.Exec(ctx, DDL)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.Exec(ctx, PUB)
 	if err != nil {
 		return err
 	}
@@ -79,7 +46,14 @@ func (c *ControlPlane) SetupActive(ctx context.Context, inst Instance) error {
 }
 
 func (c *ControlPlane) SetupStandby(ctx context.Context, inst Instance, active Instance) error {
-	err := c.RunQuery(ctx, inst, DDL)
+	conn, err := getConn(ctx, inst.Port)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close(ctx)
+
+	_, err = conn.Exec(ctx, DDL)
 	if err != nil {
 		return err
 	}
@@ -88,7 +62,7 @@ func (c *ControlPlane) SetupStandby(ctx context.Context, inst Instance, active I
 		"CREATE SUBSCRIPTION sub CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub;",
 		active.Name, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
 
-	err = c.RunQuery(ctx, inst, sub)
+	_, err = conn.Exec(ctx, sub)
 	if err != nil {
 		return err
 	}
