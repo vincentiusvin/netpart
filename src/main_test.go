@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"netpart/control"
 	"testing"
 
@@ -123,7 +124,7 @@ func TestDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = control.SetupActive(ctx, active)
+	err = control.SetupPrimary(ctx, active)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,4 +133,46 @@ func TestDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	in_key := "test"
+	in_value := "val"
+
+	err = control.Put(ctx, active, in_key, in_value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = findVal(active, in_key, in_value)
+	if err != nil {
+		t.Fatal("failed to find data on primary")
+	}
+
+	err = findVal(active, in_key, in_value)
+	if err != nil {
+		t.Fatal("failed to find data on standby")
+	}
+
+}
+
+func findVal(inst control.Instance, key string, value string) error {
+	ctx := context.Background()
+	val, err := control.Get(ctx, inst)
+	if err != nil {
+		return err
+	}
+
+	inserted := false
+	for _, e := range val {
+		found := e.Key == key && e.Value == value
+		if found {
+			inserted = true
+			break
+		}
+	}
+
+	if !inserted {
+		return fmt.Errorf("failed to find inserted data")
+	}
+
+	return nil
 }

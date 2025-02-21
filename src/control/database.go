@@ -29,7 +29,7 @@ func getConn(ctx context.Context, port string) (*pgx.Conn, error) {
 const DDL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
 const PUB = "CREATE PUBLICATION pub FOR TABLE kv;"
 
-func SetupActive(ctx context.Context, inst Instance) error {
+func SetupPrimary(ctx context.Context, inst Instance) error {
 	conn, err := getConn(ctx, inst.Port)
 	if err != nil {
 		return err
@@ -75,4 +75,46 @@ func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 
 	fmt.Printf("standby setup at %v\n", inst.Name)
 	return nil
+}
+
+func Put(ctx context.Context, inst Instance, key string, value string) error {
+	conn, err := getConn(ctx, inst.Port)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close(ctx)
+
+	_, err = conn.Exec(ctx, "INSERT INTO kv (key, value) VALUES ($1, $2)", key, value)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type KV struct {
+	Key   string
+	Value string
+}
+
+func Get(ctx context.Context, inst Instance) ([]KV, error) {
+	conn, err := getConn(ctx, inst.Port)
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close(ctx)
+
+	val, err := conn.Query(ctx, "SELECT (key, value) FROM kv")
+	if err != nil {
+		return nil, err
+	}
+
+	kv, err := pgx.CollectRows(val, pgx.RowTo[KV])
+	if err != nil {
+		return nil, err
+	}
+
+	return kv, nil
 }
