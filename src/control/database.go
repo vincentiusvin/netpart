@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -12,12 +13,17 @@ const POSTGRES_PASSWORD = "postgres"
 const POSTGRES_DB = "main"
 
 func getConn(ctx context.Context, port string) (*pgx.Conn, error) {
-	connString := "postgresql://" + POSTGRES_USER + ":" + POSTGRES_PASSWORD + "@dind:" + port + "/" + POSTGRES_DB
-	conn, err := pgx.Connect(ctx, connString)
-	if err != nil {
-		return nil, err
+	for {
+		connString := "postgresql://" + POSTGRES_USER + ":" + POSTGRES_PASSWORD + "@dind:" + port + "/" + POSTGRES_DB
+		conn, err := pgx.Connect(ctx, connString)
+		if err != nil {
+			fmt.Println("pinging database failed, retrying...")
+			time.Sleep(500 * time.Millisecond)
+		} else {
+			fmt.Println("database connected!")
+			return conn, nil
+		}
 	}
-	return conn, nil
 }
 
 const DDL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
