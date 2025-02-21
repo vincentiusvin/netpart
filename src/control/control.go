@@ -139,6 +139,11 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, 
 		Port:        portInfo,
 	}
 
+	err = SetupDB(ctx, inst)
+	if err != nil {
+		return Instance{}, err
+	}
+
 	c.servers = append(c.servers, inst)
 
 	return inst, nil
@@ -275,10 +280,41 @@ func (c *ControlPlane) Cleanup(ctx context.Context) error {
 }
 
 func (c *ControlPlane) Connect(ctx context.Context, inst1 Instance, inst2 Instance) error {
-	res := c.cli.NetworkConnect(ctx, inst1.NetworkID, inst2.ContainerID, nil)
+	// stable
+	var lower Instance
+	var higher Instance
+	if inst1.Name <= inst2.Name {
+		lower = inst1
+		higher = inst2
+	} else {
+		lower = inst2
+		higher = inst1
+	}
+
+	res := c.cli.NetworkConnect(ctx, lower.NetworkID, higher.ContainerID, nil)
 	if res != nil {
 		return res
 	}
-	fmt.Printf("connected %v to %v\n", inst1.Name, inst2.Name)
+	fmt.Printf("connected %v to %v\n", lower.Name, higher.Name)
+	return nil
+}
+
+func (c *ControlPlane) Disconnect(ctx context.Context, inst1 Instance, inst2 Instance) error {
+	// stable
+	var lower Instance
+	var higher Instance
+	if inst1.Name <= inst2.Name {
+		lower = inst1
+		higher = inst2
+	} else {
+		lower = inst2
+		higher = inst1
+	}
+
+	res := c.cli.NetworkDisconnect(ctx, lower.NetworkID, higher.ContainerID, true)
+	if res != nil {
+		return res
+	}
+	fmt.Printf("disconnected %v from %v\n", lower.Name, higher.Name)
 	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"netpart/control"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/client"
 )
@@ -114,6 +115,32 @@ func TestDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	in_key := "test"
+	in_value := "val"
+
+	err = control.Put(ctx, active, in_key, in_value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = findVal(active, in_key, in_value)
+	if err != nil {
+		t.Fatal("failed to find data on primary")
+	}
+}
+
+func TestReplication(t *testing.T) {
+	ctx := context.Background()
+	c, err := getTestControlPlane()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	active, err := c.AddInstance(ctx, "db1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	passive, err := c.AddInstance(ctx, "db2")
 	if err != nil {
 		t.Fatal(err)
@@ -147,11 +174,70 @@ func TestDatabase(t *testing.T) {
 		t.Fatal("failed to find data on primary")
 	}
 
-	err = findVal(active, in_key, in_value)
+	time.Sleep(1 * time.Second)
+
+	err = findVal(passive, in_key, in_value)
 	if err != nil {
 		t.Fatal("failed to find data on standby")
 	}
+}
 
+func TestDisconnection(t *testing.T) {
+	ctx := context.Background()
+	c, err := getTestControlPlane()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	active, err := c.AddInstance(ctx, "db1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	passive, err := c.AddInstance(ctx, "db2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Connect(ctx, active, passive)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = control.SetupPrimary(ctx, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = control.SetupStandby(ctx, passive, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	in_key := "test"
+	in_value := "val"
+
+	err = control.Put(ctx, active, in_key, in_value)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = findVal(active, in_key, in_value)
+	if err != nil {
+		t.Fatal("failed to find data on primary")
+	}
+
+	err = c.Disconnect(ctx, active, passive)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(1 * time.Second)
+
+	err = findVal(passive, in_key, in_value)
+	if err == nil {
+		t.Fatal("data available on standby while disconnected")
+	}
 }
 
 func findVal(inst control.Instance, key string, value string) error {

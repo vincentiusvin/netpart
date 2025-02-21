@@ -27,9 +27,8 @@ func getConn(ctx context.Context, port string) (*pgx.Conn, error) {
 }
 
 const DDL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
-const PUB = "CREATE PUBLICATION pub FOR TABLE kv;"
 
-func SetupPrimary(ctx context.Context, inst Instance) error {
+func SetupDB(ctx context.Context, inst Instance) error {
 	conn, err := getConn(ctx, inst.Port)
 	if err != nil {
 		return err
@@ -41,6 +40,18 @@ func SetupPrimary(ctx context.Context, inst Instance) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+const PUB = "CREATE PUBLICATION pub FOR TABLE kv;"
+
+func SetupPrimary(ctx context.Context, inst Instance) error {
+	conn, err := getConn(ctx, inst.Port)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close(ctx)
 
 	_, err = conn.Exec(ctx, PUB)
 	if err != nil {
@@ -58,11 +69,6 @@ func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 	}
 
 	defer conn.Close(ctx)
-
-	_, err = conn.Exec(ctx, DDL)
-	if err != nil {
-		return err
-	}
 
 	sub := fmt.Sprintf(
 		"CREATE SUBSCRIPTION sub CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub;",
