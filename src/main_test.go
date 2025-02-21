@@ -1,4 +1,4 @@
-package control_test
+package main
 
 import (
 	"context"
@@ -125,12 +125,12 @@ func TestDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = c.SetupActive(ctx, active)
+	err = control.SetupActive(ctx, active)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = c.SetupStandby(ctx, passive, active)
+	err = control.SetupStandby(ctx, passive, active)
 	if err != nil {
 		t.Fatal(err)
 	}

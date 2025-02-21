@@ -23,7 +23,7 @@ func getConn(ctx context.Context, port string) (*pgx.Conn, error) {
 const DDL = "CREATE TABLE IF NOT EXISTS kv ( key text PRIMARY KEY, value text );"
 const PUB = "CREATE PUBLICATION pub FOR TABLE kv;"
 
-func (c *ControlPlane) SetupActive(ctx context.Context, inst Instance) error {
+func SetupActive(ctx context.Context, inst Instance) error {
 	conn, err := getConn(ctx, inst.Port)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (c *ControlPlane) SetupActive(ctx context.Context, inst Instance) error {
 	return nil
 }
 
-func (c *ControlPlane) SetupStandby(ctx context.Context, inst Instance, active Instance) error {
+func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 	conn, err := getConn(ctx, inst.Port)
 	if err != nil {
 		return err
