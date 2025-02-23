@@ -1,4 +1,4 @@
-package main
+package control_test
 
 import (
 	"context"
