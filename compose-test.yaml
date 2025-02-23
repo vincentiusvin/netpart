@@ -17,12 +17,12 @@ services:
   control:
     command: "sleep 1000000"
     container_name: netpart-control
-    build: "./"
+    build: "./server"
     environment:
       - DOCKER_HOST=unix:///mnt/docker.sock
     volumes:
       - dockersock:/mnt/
-      - ./src:/app/
+      - ./server/src:/app/
     networks:
       - control-plane
     depends_on:
