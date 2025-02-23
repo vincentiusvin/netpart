@@ -21,12 +21,32 @@ import { FormEventHandler } from "react";
 import {
   InstanceSchema,
   useAddInstance,
+  useInstanceData,
   useInstances,
   useKillInstance,
   useModifyInstance,
+  usePutInstanceData,
 } from "./hooks.tsx";
-import { Ban, Box, RadioReceiver, SatelliteDish } from "lucide-react";
+import {
+  Ban,
+  BetweenHorizonalEnd,
+  Box,
+  Plus,
+  RadioReceiver,
+  SatelliteDish,
+} from "lucide-react";
 import { toast } from "sonner";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { Label } from "@/components/ui/label.tsx";
 
 interface AddInstanceForm extends HTMLFormElement {
   instance_name: HTMLInputElement;
@@ -45,13 +65,17 @@ function AddInstance() {
     <>
       <Dialog>
         <DialogTrigger asChild>
-          <Button className="mb-8">Add Instance</Button>
+          <Button className="mb-8">
+            <Plus />
+            Add Instance
+          </Button>
         </DialogTrigger>
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Add Instance</DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="my-2">
+                <Label htmlFor="text">Name</Label>
                 <Input type="text" id="instance_name"></Input>
               </DialogDescription>
               <DialogFooter>
@@ -69,6 +93,7 @@ function Instance(props: { data: InstanceSchema; standby?: string }) {
   const { data, standby } = props;
   const { mutate: kill } = useKillInstance(data.Name);
   const { mutate: modify } = useModifyInstance(data.Name);
+  const { mutate: put } = usePutInstanceData(data.Name, "joe");
 
   return (
     <Card className="my-4">
@@ -78,7 +103,7 @@ function Instance(props: { data: InstanceSchema; standby?: string }) {
       </CardHeader>
       <CardContent>
         <Button
-          className="ml-2"
+          className="mr-2"
           onClick={() =>
             modify({
               Primary: true,
@@ -105,12 +130,50 @@ function Instance(props: { data: InstanceSchema; standby?: string }) {
           <RadioReceiver />
           Setup as Standby
         </Button>
-        <Button className="mr-2" onClick={() => kill()}>
+        <Button className="mx-2" onClick={() => kill()}>
           <Ban />
           Kill
         </Button>
+        <Button className="ml-2" onClick={() => put({ Value: "test" })}>
+          <BetweenHorizonalEnd />
+          Add Data
+        </Button>
+        <Data data={data} />
       </CardContent>
     </Card>
+  );
+}
+
+function Data(props: { data: InstanceSchema }) {
+  const { data } = props;
+  const { data: kvs } = useInstanceData(data.Name);
+
+  if (kvs == undefined) {
+    return (
+      <Table className="mt-4">
+        <TableCaption>Data for {data.Name}</TableCaption>
+        <Skeleton />
+      </Table>
+    );
+  }
+
+  return (
+    <Table className="mt-4">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Key</TableHead>
+          <TableHead>Value</TableHead>
+        </TableRow>
+        <TableBody>
+          {kvs.map((x) => (
+            <TableRow key={x.Key}>
+              <TableCell>{x.Key}</TableCell>
+              <TableCell>{x.Value}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </TableHeader>
+    </Table>
   );
 }
 
