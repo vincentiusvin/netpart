@@ -49,13 +49,9 @@ func TestListInstance(t *testing.T) {
 	}
 }
 
-func TestAddInstance(t *testing.T) {
+func TestCreateAndDelete(t *testing.T) {
 	ctx := context.Background()
-	go api.Run(ctx, SERVER)
-	err := wait(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
+	var err error
 
 	var inst control.Instance
 
@@ -72,6 +68,36 @@ func TestAddInstance(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
+
+func TestConnectAndDisconnect(t *testing.T) {
+	ctx := context.Background()
+	var err error
+
+	inst1, err := addRequest(ctx, "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst2, err := addRequest(ctx, "test2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("connect instance", func(t *testing.T) {
+		_, err := connect(ctx, inst1.Name, inst2.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("disconnect instance", func(t *testing.T) {
+		_, err := disconnect(ctx, inst1.Name, inst2.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
 }
 
 func deleteRequest(ctx context.Context, name string) (api.KillInstanceResponse, error) {
@@ -121,6 +147,56 @@ func addRequest(ctx context.Context, name string) (api.AddInstanceSuccessRespons
 	}
 
 	val, err := decode[api.AddInstanceSuccessResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func connect(ctx context.Context, name1 string, name2 string) (api.ConnectResponse, error) {
+	var client http.Client
+	var resp api.ConnectResponse
+
+	url := fmt.Sprintf(BASE_URL+"/instances/%v/connections/%v", name1, name2)
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+	}
+
+	val, err := decode[api.ConnectResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func disconnect(ctx context.Context, name1 string, name2 string) (api.DisconnectResponse, error) {
+	var client http.Client
+	var resp api.DisconnectResponse
+
+	url := fmt.Sprintf(BASE_URL+"/instances/%v/connections/%v", name1, name2)
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+	}
+
+	val, err := decode[api.DisconnectResponse](res)
 	if err != nil {
 		return resp, err
 	}

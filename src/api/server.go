@@ -30,6 +30,8 @@ func Run(ctx context.Context, addr string) {
 	r.Handle("/instances", listInstanceHandler(c)).Methods("GET")
 	r.Handle("/instances", addInstanceHandler(c)).Methods("POST")
 	r.Handle("/instances/{name}", killInstanceHandler(c)).Methods("DELETE")
+	r.Handle("/instances/{name1}/connections/{name2}", connectHandler(c)).Methods("PUT")
+	r.Handle("/instances/{name1}/connections/{name2}", disconnectHandler(c)).Methods("DELETE")
 	http.Handle("/", r)
 
 	fmt.Printf("Listening at %v\n", addr)

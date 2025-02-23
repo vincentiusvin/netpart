@@ -97,6 +97,84 @@ func killInstanceHandler(c *control.ControlPlane) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
+type ConnectResponse struct {
+	Message string
+}
+
+func connectHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		resp := &ConnectResponse{}
+
+		name1 := mux.Vars(r)["name1"]
+		inst1, err := c.GetInstance(ctx, name1)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name1)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		name2 := mux.Vars(r)["name2"]
+		inst2, err := c.GetInstance(ctx, name2)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name2)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		err = c.Connect(ctx, inst1, inst2)
+		if err != nil {
+			resp.Message = "unknown error"
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		resp.Message = "OK"
+		encode(w, r, http.StatusOK, resp)
+	}
+	return http.HandlerFunc(handler)
+}
+
+type DisconnectResponse struct {
+	Message string
+}
+
+func disconnectHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		resp := &DisconnectResponse{}
+
+		name1 := mux.Vars(r)["name1"]
+		inst1, err := c.GetInstance(ctx, name1)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name1)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		name2 := mux.Vars(r)["name2"]
+		inst2, err := c.GetInstance(ctx, name2)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name2)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		err = c.Disconnect(ctx, inst1, inst2)
+		if err != nil {
+			resp.Message = "unknown error"
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		resp.Message = "OK"
+		encode(w, r, http.StatusOK, resp)
+	}
+	return http.HandlerFunc(handler)
+}
+
 func pingHandler() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		encode(w, r, http.StatusOK, struct {
