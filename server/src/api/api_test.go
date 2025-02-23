@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-const SERVER = "127.0.0.1:7000"
-const BASE_URL = "http://" + SERVER
+const SERVER = "127.0.0.1:7001"
+const BASE_URL = "http://" + SERVER + "/api"
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -176,7 +176,12 @@ func deleteRequest(ctx context.Context, name string) (api.KillInstanceResponse, 
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.KillInstanceResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.KillInstanceResponse](res)
@@ -205,7 +210,12 @@ func modifyRequest(ctx context.Context, name string, body api.ModifyInstanceBody
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.ModifyInstanceResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.ModifyInstanceResponse](res)
@@ -229,7 +239,12 @@ func getKeysRequest(ctx context.Context, name string) (api.GetKeysSuccessRespons
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.GetKeysFailResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.GetKeysSuccessResponse](res)
@@ -261,7 +276,12 @@ func putKeysRequest(ctx context.Context, name string, key string, value string) 
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.PutKeysResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.PutKeysResponse](res)
@@ -290,7 +310,12 @@ func addRequest(ctx context.Context, name string) (api.AddInstanceSuccessRespons
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.AddInstanceErrorResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.AddInstanceSuccessResponse](res)
@@ -315,7 +340,12 @@ func connect(ctx context.Context, name1 string, name2 string) (api.ConnectRespon
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.AddInstanceErrorResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.ConnectResponse](res)
@@ -340,7 +370,12 @@ func disconnect(ctx context.Context, name1 string, name2 string) (api.Disconnect
 		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+		val, err := decode[api.DisconnectResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
 	}
 
 	val, err := decode[api.DisconnectResponse](res)

@@ -18,7 +18,7 @@ type AddInstanceErrorResponse struct {
 
 type AddInstanceSuccessResponse = control.Instance
 
-func addInstanceHandler(c *control.ControlPlane) http.Handler {
+func addInstanceHandler(c *control.ControlPlane, image string) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		var resp AddInstanceErrorResponse
@@ -36,9 +36,9 @@ func addInstanceHandler(c *control.ControlPlane) http.Handler {
 			return
 		}
 
-		inst, err := c.AddInstance(ctx, body.Name)
+		inst, err := c.AddInstance(ctx, body.Name, image)
 		if err != nil {
-			resp.Message = "unknown error"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"netpart/control"
+	"os"
 	"testing"
 	"time"
 
@@ -49,7 +50,7 @@ func TestProvision(t *testing.T) {
 	var inst control.Instance
 
 	t.Run("can add instance", func(t *testing.T) {
-		inst, err = c.AddInstance(ctx, in_name)
+		inst, err = c.AddInstance(ctx, in_name, os.Getenv("POSTGRES_IMAGE"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -95,7 +96,7 @@ func TestConnection(t *testing.T) {
 	instances := make([]control.Instance, len(names))
 
 	for i, name := range names {
-		inst, err := c.AddInstance(ctx, name)
+		inst, err := c.AddInstance(ctx, name, os.Getenv("POSTGRES_IMAGE"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,7 +117,7 @@ func TestDatabase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	active, err := c.AddInstance(ctx, "db1")
+	active, err := c.AddInstance(ctx, "db1", os.Getenv("POSTGRES_IMAGE"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,12 +144,12 @@ func TestReplication(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	active, err := c.AddInstance(ctx, "db1")
+	active, err := c.AddInstance(ctx, "db1", os.Getenv("POSTGRES_IMAGE"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	passive, err := c.AddInstance(ctx, "db2")
+	passive, err := c.AddInstance(ctx, "db2", os.Getenv("POSTGRES_IMAGE"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,12 +198,12 @@ func TestDisconnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	active, err := c.AddInstance(ctx, "db1")
+	active, err := c.AddInstance(ctx, "db1", os.Getenv("POSTGRES_IMAGE"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	passive, err := c.AddInstance(ctx, "db2")
+	passive, err := c.AddInstance(ctx, "db2", os.Getenv("POSTGRES_IMAGE"))
 	if err != nil {
 		t.Fatal(err)
 	}

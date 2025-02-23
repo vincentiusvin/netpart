@@ -3,19 +3,16 @@ package control
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 )
 
-const POSTGRES_IMAGE = "postgres:16.3-alpine3.20"
 const PREFIX = "netpart-"
 
 var ENVS = [3]string{
@@ -33,7 +30,6 @@ type Instance struct {
 
 type ControlPlane struct {
 	cli     *client.Client
-	pulled  bool
 	servers []Instance
 }
 
@@ -61,25 +57,7 @@ func MakeControlPlane(ctx context.Context, ops ...client.Opt) (*ControlPlane, er
 	return c, nil
 }
 
-func (c *ControlPlane) PullImage(ctx context.Context) error {
-	if c.pulled {
-		return nil
-	}
-
-	fmt.Println("pulling image...")
-	res, err := c.cli.ImagePull(ctx, POSTGRES_IMAGE, image.PullOptions{})
-	if err != nil {
-		return err
-	}
-	defer res.Close()
-	io.Copy(io.Discard, res)
-
-	c.pulled = true
-	fmt.Println("image pulled!")
-	return nil
-}
-
-func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, error) {
+func (c *ControlPlane) AddInstance(ctx context.Context, name string, image string) (Instance, error) {
 	name = PREFIX + name
 
 	portMap := nat.PortMap{
@@ -96,7 +74,7 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, 
 	}
 
 	ctr, err := c.cli.ContainerCreate(ctx, &container.Config{
-		Image: POSTGRES_IMAGE,
+		Image: image,
 		Env:   ENVS[:],
 		Cmd:   []string{"postgres", "-c", "wal_level=logical"},
 	}, hostConfig, nil, nil, name)

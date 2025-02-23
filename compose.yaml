@@ -5,6 +5,7 @@ services:
     privileged: true
     environment:
       - DOCKER_HOST=unix:///mnt/docker.sock
+      - POSTGRES_IMAGE=postgres:16.3-alpine3.20
     volumes:
       - dockersock:/mnt/
       - ./dind/images/:/images
@@ -20,8 +21,10 @@ services:
     build: "./server"
     environment:
       - DOCKER_HOST=unix:///mnt/docker.sock
+      - POSTGRES_IMAGE=postgres:16.3-alpine3.20
     volumes:
       - dockersock:/mnt/
+      - ./server/src/:/app
     networks:
       - control-plane
     depends_on:
