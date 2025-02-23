@@ -7,5 +7,5 @@ import (
 
 func main() {
 	ctx := context.Background()
-	api.Run(ctx, ":7000")
+	api.Run(ctx, ":80")
 }

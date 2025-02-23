@@ -31,10 +31,15 @@ services:
       dind:
         condition: "service_healthy"
   client:
-    container_name: client
+    container_name: netpart-client
     build: "./client"
+    command: npx vite --host
+    networks:
+      - control-plane
     volumes:
-      - ./client/src/:/app
+      - ./client/:/app
+    ports:
+      - "7000:5173"
 
 volumes:
   dockersock:
