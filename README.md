@@ -7,3 +7,15 @@ Does three things:
 Runs docker-in-docker for provisioning and controlling the networking.
 
 Replication uses postgres' logical replication.
+
+Main environment:
+
+```bash
+docker compose -f compose.yaml up --build
+```
+
+Test environment:
+
+```bash
+docker compose -f compose.yaml -f compose.test.yaml up --build
+```
