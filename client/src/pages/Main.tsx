@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
   Table,
@@ -34,8 +41,7 @@ import {
   RadioReceiver,
   SatelliteDish,
 } from "lucide-react";
-import { FormEventHandler } from "react";
-import { toast } from "sonner";
+import { FormEventHandler, useState } from "react";
 import {
   InstanceSchema,
   useAddInstance,
@@ -60,35 +66,84 @@ function AddInstance() {
     });
   };
   return (
-    <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button className="mb-8">
-            <Plus />
-            Add Instance
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <form onSubmit={handleSubmit}>
-            <DialogHeader>
-              <DialogTitle>Add Instance</DialogTitle>
-              <DialogDescription className="my-2">
-                <Label htmlFor="text">Name</Label>
-                <Input type="text" id="instance_name"></Input>
-              </DialogDescription>
-              <DialogFooter>
-                <Button type="submit">Add</Button>
-              </DialogFooter>
-            </DialogHeader>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="mb-8">
+          <Plus />
+          Add Instance
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Add Instance</DialogTitle>
+            <DialogDescription className="my-2">
+              <Label htmlFor="text">Name</Label>
+              <Input type="text" id="instance_name"></Input>
+            </DialogDescription>
+            <DialogFooter>
+              <Button type="submit">Add</Button>
+            </DialogFooter>
+          </DialogHeader>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function Instance(props: { data: InstanceSchema; standby?: string }) {
-  const { data, standby } = props;
+function StandbyDialog(props: { data: InstanceSchema }) {
+  const { data } = props;
+  const { mutate: modify } = useModifyInstance(data.Name);
+  const { data: leaderOptions } = useInstances();
+  const [leader, setLeader] = useState("");
+
+  const handleSubmit: FormEventHandler = (e) => {
+    e.preventDefault();
+    modify({
+      Standby: true,
+      StandbyTo: leader,
+    });
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button className="mx-2">
+          <RadioReceiver />
+          Setup as Standby
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Setup as Standby</DialogTitle>
+            <DialogDescription className="my-2">
+              <Label htmlFor="text">Leader</Label>
+              <Select onValueChange={(v) => setLeader(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a leader" />
+                </SelectTrigger>
+                <SelectContent>
+                  {leaderOptions?.map((x) => (
+                    <SelectItem value={x.Name} key={x.Name}>
+                      {x.Name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DialogDescription>
+            <DialogFooter>
+              <Button type="submit">Submit</Button>
+            </DialogFooter>
+          </DialogHeader>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Instance(props: { data: InstanceSchema }) {
+  const { data } = props;
   const { mutate: kill } = useKillInstance(data.Name);
   const { mutate: modify } = useModifyInstance(data.Name);
 
@@ -110,23 +165,7 @@ function Instance(props: { data: InstanceSchema; standby?: string }) {
           <SatelliteDish />
           Setup as Primary
         </Button>
-        <Button
-          className="mx-2"
-          onClick={() => {
-            if (standby == undefined || standby == "") {
-              toast.error("Cannot set as standby without a leader!");
-              return;
-            }
-
-            modify({
-              Standby: true,
-              StandbyTo: standby,
-            });
-          }}
-        >
-          <RadioReceiver />
-          Setup as Standby
-        </Button>
+        <StandbyDialog data={data} />
         <Button className="mx-2" onClick={() => kill()}>
           <Ban />
           Kill
@@ -185,7 +224,6 @@ function Data(props: { data: InstanceSchema }) {
     return (
       <Table className="mt-4">
         <TableCaption>Data for {data.Name}</TableCaption>
-        <Skeleton />
       </Table>
     );
   }
