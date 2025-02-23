@@ -263,6 +263,48 @@ func getKeysHandler(c *control.ControlPlane) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
+type PutKeysBody struct {
+	Value string
+}
+type PutKeysResponse struct {
+	Message string
+}
+
+func putKeysHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		var resp PutKeysResponse
+
+		name := mux.Vars(r)["name"]
+		inst, err := c.GetInstance(ctx, name)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		key := mux.Vars(r)["key"]
+		value, err := decode[PutKeysBody](r)
+		if err != nil {
+			resp.Message = "unable to read value"
+			encode(w, r, http.StatusBadRequest, resp)
+			return
+		}
+
+		err = control.Put(ctx, inst, key, value.Value)
+		if err != nil {
+			resp.Message = "unable to put value"
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		resp.Message = "OK"
+		encode(w, r, http.StatusOK, resp)
+	}
+
+	return http.HandlerFunc(handler)
+}
+
 func pingHandler() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		encode(w, r, http.StatusOK, struct {

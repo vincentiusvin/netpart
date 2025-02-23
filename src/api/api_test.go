@@ -148,7 +148,14 @@ func TestQueries(t *testing.T) {
 	}
 
 	t.Run("get keys", func(t *testing.T) {
-		_, err := getKeys(ctx, inst.Name)
+		_, err := getKeysRequest(ctx, inst.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("put keys", func(t *testing.T) {
+		_, err := putKeysRequest(ctx, inst.Name, "key", "value")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -208,7 +215,7 @@ func modifyRequest(ctx context.Context, name string, body api.ModifyInstanceBody
 	return val, nil
 }
 
-func getKeys(ctx context.Context, name string) (api.GetKeysSuccessResponse, error) {
+func getKeysRequest(ctx context.Context, name string) (api.GetKeysSuccessResponse, error) {
 	var client http.Client
 	var resp api.GetKeysSuccessResponse
 
@@ -226,6 +233,38 @@ func getKeys(ctx context.Context, name string) (api.GetKeysSuccessResponse, erro
 	}
 
 	val, err := decode[api.GetKeysSuccessResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func putKeysRequest(ctx context.Context, name string, key string, value string) (api.PutKeysResponse, error) {
+	var client http.Client
+	var resp api.PutKeysResponse
+
+	body, err := encode(api.PutKeysBody{
+		Value: value,
+	})
+
+	if err != nil {
+		return resp, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PUT", BASE_URL+"/instances/"+name+"/keys/"+key, body)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+	}
+
+	val, err := decode[api.PutKeysResponse](res)
 	if err != nil {
 		return resp, err
 	}
