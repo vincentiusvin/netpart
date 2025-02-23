@@ -66,6 +66,63 @@ func listInstanceHandler(c *control.ControlPlane) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
+type ModifyInstanceBody struct {
+	Primary bool
+
+	Standby   bool
+	StandbyTo string
+}
+
+type ModifyInstanceResponse struct {
+	Message string
+}
+
+func modifyInstanceHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		var resp ModifyInstanceResponse
+
+		name := mux.Vars(r)["name"]
+		inst, err := c.GetInstance(ctx, name)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		body, err := decode[ModifyInstanceBody](r)
+		if body.Primary && body.Standby {
+			resp.Message = "cannot set a node as primary and secondary"
+			encode(w, r, http.StatusBadRequest, resp)
+			return
+		}
+
+		if body.Primary {
+			err = control.SetupPrimary(ctx, inst)
+		} else if body.Standby {
+			var primary control.Instance
+			primary, err = c.GetInstance(ctx, body.StandbyTo)
+			if err != nil {
+				resp.Message = fmt.Sprintf("unable to find primary %v", primary)
+				encode(w, r, http.StatusBadRequest, resp)
+				return
+			}
+			err = control.SetupStandby(ctx, inst, primary)
+		}
+
+		if err != nil {
+			resp.Message = "unable to set node"
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		resp.Message = "OK"
+		encode(w, r, http.StatusOK, resp)
+	}
+
+	return http.HandlerFunc(handler)
+}
+
 type KillInstanceResponse struct {
 	Message string
 }

@@ -97,7 +97,45 @@ func TestConnectAndDisconnect(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+}
 
+func TestPrimarySecondary(t *testing.T) {
+	ctx := context.Background()
+	var err error
+
+	inst1, err := addRequest(ctx, "test3")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst2, err := addRequest(ctx, "test4")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = connect(ctx, inst1.Name, inst2.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("setup primary", func(t *testing.T) {
+		_, err := modifyRequest(ctx, inst1.Name, api.ModifyInstanceBody{
+			Primary: true,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	t.Run("setup standby", func(t *testing.T) {
+		_, err := modifyRequest(ctx, inst2.Name, api.ModifyInstanceBody{
+			Standby:   true,
+			StandbyTo: inst1.Name,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func deleteRequest(ctx context.Context, name string) (api.KillInstanceResponse, error) {
@@ -118,6 +156,35 @@ func deleteRequest(ctx context.Context, name string) (api.KillInstanceResponse, 
 	}
 
 	val, err := decode[api.KillInstanceResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func modifyRequest(ctx context.Context, name string, body api.ModifyInstanceBody) (api.ModifyInstanceResponse, error) {
+	var client http.Client
+	var resp api.ModifyInstanceResponse
+
+	reader, err := encode(body)
+	if err != nil {
+		return resp, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PUT", BASE_URL+"/instances/"+name, reader)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+	}
+
+	val, err := decode[api.ModifyInstanceResponse](res)
 	if err != nil {
 		return resp, err
 	}
