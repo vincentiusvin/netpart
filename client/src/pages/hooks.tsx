@@ -120,13 +120,14 @@ export function useInstanceData(name: string) {
 }
 
 type PutBody = {
+  Key: string;
   Value: string;
 };
 
-export function usePutInstanceData(name: string, key: string) {
+export function usePutInstanceData(name: string) {
   return useMutation({
     mutationFn: async (body: PutBody) => {
-      const res = await fetch(`/api/instances/${name}/keys/${key}`, {
+      const res = await fetch(`/api/instances/${name}/keys/${body.Key}`, {
         method: "put",
         body: JSON.stringify(body),
       });

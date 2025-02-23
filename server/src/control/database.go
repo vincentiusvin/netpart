@@ -91,7 +91,7 @@ func Put(ctx context.Context, inst Instance, key string, value string) error {
 
 	defer conn.Close(ctx)
 
-	_, err = conn.Exec(ctx, "INSERT INTO kv (key, value) VALUES ($1, $2)", key, value)
+	_, err = conn.Exec(ctx, "INSERT INTO kv (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2", key, value)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func Get(ctx context.Context, inst Instance) ([]KV, error) {
 
 	defer conn.Close(ctx)
 
-	val, err := conn.Query(ctx, "SELECT (key, value) FROM kv")
+	val, err := conn.Query(ctx, "SELECT (key, value) FROM kv ORDER BY key ASC")
 	if err != nil {
 		return nil, err
 	}

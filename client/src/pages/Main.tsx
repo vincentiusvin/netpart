@@ -3,7 +3,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -17,25 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { FormEventHandler } from "react";
-import {
-  InstanceSchema,
-  useAddInstance,
-  useInstanceData,
-  useInstances,
-  useKillInstance,
-  useModifyInstance,
-  usePutInstanceData,
-} from "./hooks.tsx";
-import {
-  Ban,
-  BetweenHorizonalEnd,
-  Box,
-  Plus,
-  RadioReceiver,
-  SatelliteDish,
-} from "lucide-react";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
   Table,
   TableBody,
@@ -45,8 +27,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table.tsx";
-import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { Label } from "@/components/ui/label.tsx";
+import {
+  Ban,
+  BetweenHorizonalEnd,
+  Plus,
+  RadioReceiver,
+  SatelliteDish,
+} from "lucide-react";
+import { FormEventHandler } from "react";
+import { toast } from "sonner";
+import {
+  InstanceSchema,
+  useAddInstance,
+  useInstanceData,
+  useInstances,
+  useKillInstance,
+  useModifyInstance,
+  usePutInstanceData,
+} from "./hooks.tsx";
 
 interface AddInstanceForm extends HTMLFormElement {
   instance_name: HTMLInputElement;
@@ -93,7 +91,6 @@ function Instance(props: { data: InstanceSchema; standby?: string }) {
   const { data, standby } = props;
   const { mutate: kill } = useKillInstance(data.Name);
   const { mutate: modify } = useModifyInstance(data.Name);
-  const { mutate: put } = usePutInstanceData(data.Name, "joe");
 
   return (
     <Card className="my-4">
@@ -134,13 +131,49 @@ function Instance(props: { data: InstanceSchema; standby?: string }) {
           <Ban />
           Kill
         </Button>
-        <Button className="ml-2" onClick={() => put({ Value: "test" })}>
-          <BetweenHorizonalEnd />
-          Add Data
-        </Button>
+        <div>
+          <DataSubmission data={data} />
+        </div>
         <Data data={data} />
       </CardContent>
     </Card>
+  );
+}
+
+interface DataSubmissionForm extends HTMLFormElement {
+  datakey: HTMLInputElement;
+  datavalue: HTMLInputElement;
+}
+
+function DataSubmission(props: { data: InstanceSchema }) {
+  const { data } = props;
+  const { mutate: put } = usePutInstanceData(data.Name);
+
+  const handleSubmit: FormEventHandler<DataSubmissionForm> = (e) => {
+    e.preventDefault();
+    const key = e.currentTarget.datakey.value;
+    const value = e.currentTarget.datavalue.value;
+    put({
+      Key: key,
+      Value: value,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="flex gap-8 items-center">
+        <div>
+          <Label>Key</Label>
+          <Input type="text" id="datakey" />
+          <Label>Value</Label>
+          <Input type="text" id="datavalue" />
+        </div>
+        <Button className="mr-2 mt-4" type="submit">
+          <BetweenHorizonalEnd />
+          Submit
+        </Button>
+      </div>
+    </form>
   );
 }
 
@@ -164,15 +197,15 @@ function Data(props: { data: InstanceSchema }) {
           <TableHead>Key</TableHead>
           <TableHead>Value</TableHead>
         </TableRow>
-        <TableBody>
-          {kvs.map((x) => (
-            <TableRow key={x.Key}>
-              <TableCell>{x.Key}</TableCell>
-              <TableCell>{x.Value}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
       </TableHeader>
+      <TableBody>
+        {kvs.map((x) => (
+          <TableRow key={x.Key}>
+            <TableCell>{x.Key}</TableCell>
+            <TableCell>{x.Value}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
     </Table>
   );
 }
@@ -180,7 +213,7 @@ function Data(props: { data: InstanceSchema }) {
 function Main() {
   const { data } = useInstances();
   if (data == undefined) {
-    return null;
+    return <Skeleton />;
   }
   return (
     <div className="p-16">
