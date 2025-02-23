@@ -151,6 +151,16 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string) (Instance, 
 	return inst, nil
 }
 
+func (c *ControlPlane) GetInstance(ctx context.Context, name string) (Instance, error) {
+	for _, c := range c.servers {
+		if c.Name == name {
+			return c, nil
+		}
+	}
+
+	return Instance{}, fmt.Errorf("cannot find instance %v", name)
+}
+
 func (c *ControlPlane) ListInstances(ctx context.Context) ([]Instance, error) {
 	containers, err := c.cli.ContainerList(ctx, container.ListOptions{})
 	if err != nil {

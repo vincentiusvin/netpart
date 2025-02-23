@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"netpart/api"
+	"netpart/control"
 	"testing"
 	"time"
 )
@@ -56,30 +57,74 @@ func TestAddInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var client http.Client
-	body, err := encode(api.AddInstanceBody{
-		Name: "test",
+	var inst control.Instance
+
+	t.Run("add instance", func(t *testing.T) {
+		inst, err = addRequest(ctx, "test")
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
+
+	t.Run("delete instance", func(t *testing.T) {
+		_, err = deleteRequest(ctx, inst.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func deleteRequest(ctx context.Context, name string) (api.KillInstanceResponse, error) {
+	var client http.Client
+	var resp api.KillInstanceResponse
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", BASE_URL+"/instances/"+name, nil)
 	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequestWithContext(ctx, "POST", BASE_URL+"/instances", body)
-	if err != nil {
-		t.Fatal(err)
+		return resp, err
 	}
 
 	res, err := client.Do(req)
 	if err != nil {
-		t.Fatal(err)
+		return resp, err
 	}
 	if res.StatusCode != http.StatusOK {
-		t.Fatalf("response not ok. got %v", res.StatusCode)
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
 	}
 
-	_, err = decode[api.AddInstanceSuccessResponse](res)
+	val, err := decode[api.KillInstanceResponse](res)
 	if err != nil {
-		t.Fatal(err)
+		return resp, err
 	}
+	return val, nil
+}
+
+func addRequest(ctx context.Context, name string) (api.AddInstanceSuccessResponse, error) {
+	var client http.Client
+	var resp api.AddInstanceSuccessResponse
+	body, err := encode(api.AddInstanceBody{
+		Name: name,
+	})
+	if err != nil {
+		return resp, err
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", BASE_URL+"/instances", body)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+	}
+
+	val, err := decode[api.AddInstanceSuccessResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
 }
 
 func wait(ctx context.Context) error {

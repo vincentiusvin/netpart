@@ -7,6 +7,7 @@ import (
 	"netpart/control"
 
 	"github.com/docker/docker/client"
+	"github.com/gorilla/mux"
 )
 
 func Run(ctx context.Context, addr string) {
@@ -24,9 +25,12 @@ func Run(ctx context.Context, addr string) {
 		panic(err)
 	}
 
-	http.Handle("GET /ping", pingHandler())
-	http.Handle("GET /instances", listInstanceHandler(c))
-	http.Handle("POST /instances", addInstanceHandler(c))
+	r := mux.NewRouter()
+	r.Handle("/ping", pingHandler()).Methods("GET")
+	r.Handle("/instances", listInstanceHandler(c)).Methods("GET")
+	r.Handle("/instances", addInstanceHandler(c)).Methods("POST")
+	r.Handle("/instances/{name}", killInstanceHandler(c)).Methods("DELETE")
+	http.Handle("/", r)
 
 	fmt.Printf("Listening at %v\n", addr)
 	err = http.ListenAndServe(addr, nil)
