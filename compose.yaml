@@ -1,12 +1,13 @@
 services:
   dind:
-    image: docker:28.0.0-rc.3-dind-alpine3.21
-    container_name: dind
+    container_name: netpart-dind
+    build: "./dind"
     privileged: true
     environment:
       - DOCKER_HOST=unix:///mnt/docker.sock
     volumes:
       - dockersock:/mnt/
+      - ./dind/images/:/images
     networks:
       - control-plane
     healthcheck:

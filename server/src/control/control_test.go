@@ -22,10 +22,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	err = nc.PullImage(ctx)
-	if err != nil {
-		panic(err)
-	}
+	// err = nc.PullImage(ctx)
+	// if err != nil {
+	// 	panic(err)
+	// }
 	c = nc
 	m.Run()
 }
