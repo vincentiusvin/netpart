@@ -14,6 +14,15 @@ func Run(ctx context.Context, addr string) {
 	if err != nil {
 		panic(err)
 	}
+	err = c.PullImage(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	err = c.Cleanup(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	http.Handle("GET /ping", pingHandler())
 	http.Handle("GET /instances", listInstanceHandler(c))

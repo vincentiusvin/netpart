@@ -10,32 +10,36 @@ import (
 	"github.com/docker/docker/client"
 )
 
-func getTestControlPlane() (*control.ControlPlane, error) {
+var c *control.ControlPlane
+
+func TestMain(m *testing.M) {
 	ctx := context.Background()
-	c, err := control.MakeControlPlane(ctx, client.FromEnv)
+	nc, err := control.MakeControlPlane(ctx, client.FromEnv)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	err = c.Cleanup(ctx)
+	err = nc.Cleanup(ctx)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return c, nil
+	err = nc.PullImage(ctx)
+	if err != nil {
+		panic(err)
+	}
+	c = nc
+	m.Run()
 }
 
 func TestCleanup(t *testing.T) {
 	ctx := context.Background()
-	c, err := getTestControlPlane()
-	if err != nil {
-		t.Fatal(err)
-	}
 	c.Cleanup(ctx)
 	c.ListInstances(ctx)
 }
 
 func TestProvision(t *testing.T) {
 	ctx := context.Background()
-	c, err := getTestControlPlane()
+
+	err := c.Cleanup(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +82,8 @@ func TestProvision(t *testing.T) {
 
 func TestConnection(t *testing.T) {
 	ctx := context.Background()
-	c, err := getTestControlPlane()
+
+	err := c.Cleanup(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +110,8 @@ func TestConnection(t *testing.T) {
 
 func TestDatabase(t *testing.T) {
 	ctx := context.Background()
-	c, err := getTestControlPlane()
+
+	err := c.Cleanup(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +137,8 @@ func TestDatabase(t *testing.T) {
 
 func TestReplication(t *testing.T) {
 	ctx := context.Background()
-	c, err := getTestControlPlane()
+
+	err := c.Cleanup(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +191,8 @@ func TestReplication(t *testing.T) {
 
 func TestDisconnection(t *testing.T) {
 	ctx := context.Background()
-	c, err := getTestControlPlane()
+
+	err := c.Cleanup(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
