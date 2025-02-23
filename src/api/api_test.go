@@ -138,6 +138,23 @@ func TestPrimarySecondary(t *testing.T) {
 	})
 }
 
+func TestQueries(t *testing.T) {
+	ctx := context.Background()
+	var err error
+
+	inst, err := addRequest(ctx, "test5")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("get keys", func(t *testing.T) {
+		_, err := getKeys(ctx, inst.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
 func deleteRequest(ctx context.Context, name string) (api.KillInstanceResponse, error) {
 	var client http.Client
 	var resp api.KillInstanceResponse
@@ -185,6 +202,30 @@ func modifyRequest(ctx context.Context, name string, body api.ModifyInstanceBody
 	}
 
 	val, err := decode[api.ModifyInstanceResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func getKeys(ctx context.Context, name string) (api.GetKeysSuccessResponse, error) {
+	var client http.Client
+	var resp api.GetKeysSuccessResponse
+
+	req, err := http.NewRequestWithContext(ctx, "GET", BASE_URL+"/instances/"+name+"/keys", nil)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return resp, fmt.Errorf("response not ok. got %v", res.StatusCode)
+	}
+
+	val, err := decode[api.GetKeysSuccessResponse](res)
 	if err != nil {
 		return resp, err
 	}

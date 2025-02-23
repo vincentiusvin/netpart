@@ -232,6 +232,37 @@ func disconnectHandler(c *control.ControlPlane) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
+type GetKeysSuccessResponse = []control.KV
+type GetKeysFailResponse struct {
+	Message string
+}
+
+func getKeysHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		var resp GetKeysFailResponse
+
+		name := mux.Vars(r)["name"]
+		inst, err := c.GetInstance(ctx, name)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		vals, err := control.Get(ctx, inst)
+		if err != nil {
+			resp.Message = "unable to get values"
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		encode(w, r, http.StatusOK, vals)
+	}
+
+	return http.HandlerFunc(handler)
+}
+
 func pingHandler() http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		encode(w, r, http.StatusOK, struct {
