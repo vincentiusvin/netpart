@@ -54,9 +54,16 @@ func MakeControlPlane(ctx context.Context, ops ...client.Opt) (*ControlPlane, er
 		}
 	}
 
-	return &ControlPlane{
+	c := &ControlPlane{
 		cli: cli,
-	}, nil
+	}
+
+	err = c.PullImage(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	return c, nil
 }
 
 func (c *ControlPlane) PullImage(ctx context.Context) error {
