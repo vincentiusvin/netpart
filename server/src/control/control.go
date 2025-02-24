@@ -269,6 +269,32 @@ func (c *ControlPlane) Cleanup(ctx context.Context) error {
 	return nil
 }
 
+func (c *ControlPlane) GetConnection(ctx context.Context, inst1 Instance, inst2 Instance) (bool, error) {
+	// stable
+	var lower Instance
+	var higher Instance
+	if inst1.Name <= inst2.Name {
+		lower = inst1
+		higher = inst2
+	} else {
+		lower = inst2
+		higher = inst1
+	}
+
+	res, err := c.cli.ContainerInspect(ctx, higher.ContainerID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, n := range res.NetworkSettings.Networks {
+		if n.NetworkID == lower.NetworkID {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (c *ControlPlane) Connect(ctx context.Context, inst1 Instance, inst2 Instance) error {
 	// stable
 	var lower Instance

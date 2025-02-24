@@ -107,6 +107,15 @@ func TestConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	conn, err := c.GetConnection(ctx, instances[0], instances[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !conn {
+		t.Fatalf("network not connected!")
+	}
 }
 
 func TestDatabase(t *testing.T) {

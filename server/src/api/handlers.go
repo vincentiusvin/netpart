@@ -57,7 +57,7 @@ func listInstanceHandler(c *control.ControlPlane) http.Handler {
 
 		insts, err := c.ListInstances(ctx)
 		if err != nil {
-			resp.Message = "unknown error"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}
@@ -143,11 +143,52 @@ func killInstanceHandler(c *control.ControlPlane) http.Handler {
 
 		err = c.KillInstance(ctx, inst)
 		if err != nil {
-			resp.Message = "unknown error"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}
 
+		resp.Message = "OK"
+		encode(w, r, http.StatusOK, resp)
+	}
+	return http.HandlerFunc(handler)
+}
+
+type GetConnectResponse struct {
+	Connected bool
+	Message   string
+}
+
+func getConnectHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		resp := &GetConnectResponse{}
+
+		name1 := mux.Vars(r)["name1"]
+		inst1, err := c.GetInstance(ctx, name1)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name1)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		name2 := mux.Vars(r)["name2"]
+		inst2, err := c.GetInstance(ctx, name2)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name2)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		connected, err := c.GetConnection(ctx, inst1, inst2)
+		if err != nil {
+			resp.Message = err.Error()
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		resp.Connected = connected
 		resp.Message = "OK"
 		encode(w, r, http.StatusOK, resp)
 	}
@@ -182,7 +223,7 @@ func connectHandler(c *control.ControlPlane) http.Handler {
 
 		err = c.Connect(ctx, inst1, inst2)
 		if err != nil {
-			resp.Message = "unknown error"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}
@@ -221,7 +262,7 @@ func disconnectHandler(c *control.ControlPlane) http.Handler {
 
 		err = c.Disconnect(ctx, inst1, inst2)
 		if err != nil {
-			resp.Message = "unknown error"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}

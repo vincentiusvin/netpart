@@ -91,6 +91,16 @@ func TestConnectAndDisconnect(t *testing.T) {
 		}
 	})
 
+	t.Run("test connect instance", func(t *testing.T) {
+		res, err := getConnect(ctx, inst1.Name, inst2.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !res.Connected {
+			t.Fatalf("node failed to connect!")
+		}
+	})
+
 	t.Run("disconnect instance", func(t *testing.T) {
 		_, err := disconnect(ctx, inst1.Name, inst2.Name)
 		if err != nil {
@@ -379,6 +389,36 @@ func disconnect(ctx context.Context, name1 string, name2 string) (api.Disconnect
 	}
 
 	val, err := decode[api.DisconnectResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func getConnect(ctx context.Context, name1 string, name2 string) (api.GetConnectResponse, error) {
+	var client http.Client
+	var resp api.GetConnectResponse
+
+	url := fmt.Sprintf(BASE_URL+"/instances/%v/connections/%v", name1, name2)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		val, err := decode[api.GetConnectResponse](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
+	}
+
+	val, err := decode[api.GetConnectResponse](res)
 	if err != nil {
 		return resp, err
 	}
