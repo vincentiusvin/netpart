@@ -108,9 +108,10 @@ const dataSchema = z.object({
   Value: z.string(),
 });
 
-export function useInstanceData(name: string) {
+export function useInstanceData(name: string, refetch?: number) {
   return useQuery({
     queryKey: ["instances", name, "keys"],
+    refetchInterval: refetch,
     queryFn: async () => {
       const res = await fetch(`/api/instances/${name}/keys`);
       const data = await res.json();

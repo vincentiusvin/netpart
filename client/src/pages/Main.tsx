@@ -224,7 +224,7 @@ function DataSubmission(props: { data: InstanceSchema }) {
 
 function Data(props: { data: InstanceSchema }) {
   const { data } = props;
-  const { data: kvs } = useInstanceData(data.Name);
+  const { data: kvs } = useInstanceData(data.Name, 500);
 
   if (kvs == undefined) {
     return (
