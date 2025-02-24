@@ -12,7 +12,7 @@ services:
     networks:
       - control-plane
     healthcheck:
-      test: ["CMD-SHELL", "docker", "version"]
+      test: ["CMD-SHELL", "docker images | grep postgres"]
       interval: 3s
       timeout: 3s
       retries: 5
