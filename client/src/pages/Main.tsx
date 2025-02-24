@@ -209,8 +209,6 @@ function Instance(props: { data: InstanceSchema }) {
             </div>
           ))}
         </div>
-        <DataSubmission data={data} />
-        <Data data={data} />
       </CardContent>
     </Card>
   );
@@ -253,7 +251,7 @@ function DataSubmission(props: { data: InstanceSchema }) {
   );
 }
 
-function Data(props: { data: InstanceSchema }) {
+function DBManager(props: { data: InstanceSchema }) {
   const { data } = props;
   const { data: kvs } = useInstanceData(data.Name, 500);
 
@@ -266,22 +264,46 @@ function Data(props: { data: InstanceSchema }) {
   }
 
   return (
-    <Table className="mt-4">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Key</TableHead>
-          <TableHead>Value</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {kvs.map((x) => (
-          <TableRow key={x.Key}>
-            <TableCell>{x.Key}</TableCell>
-            <TableCell>{x.Value}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <Card>
+      <CardHeader>
+        <CardTitle>{data.Name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <DataSubmission data={data} />
+        <Table className="mt-4">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Key</TableHead>
+              <TableHead>Value</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {kvs.map((x) => (
+              <TableRow key={x.Key}>
+                <TableCell>{x.Key}</TableCell>
+                <TableCell>{x.Value}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Data() {
+  const { data: instances } = useInstances();
+
+  if (instances == undefined) {
+    return <Skeleton />;
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {instances.map((x) => (
+        <DBManager data={x} />
+      ))}
+    </div>
   );
 }
 
@@ -381,12 +403,16 @@ function Main() {
       <TabsList className="mb-8">
         <TabsTrigger value="provision">Provision</TabsTrigger>
         <TabsTrigger value="network">Network</TabsTrigger>
+        <TabsTrigger value="data">Data</TabsTrigger>
       </TabsList>
       <TabsContent value="provision">
         <Provision />
       </TabsContent>
       <TabsContent value="network">
         <Network />
+      </TabsContent>
+      <TabsContent value="data">
+        <Data />
       </TabsContent>
     </Tabs>
   );
