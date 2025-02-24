@@ -147,3 +147,65 @@ export function usePutInstanceData(name: string) {
     },
   });
 }
+
+const networkSchema = z.object({
+  Connected: z.boolean(),
+  Message: z.string(),
+});
+
+export function useGetConnection(name1: string, name2: string) {
+  return useQuery({
+    queryKey: ["instances", name1, "net", name2],
+    queryFn: async () => {
+      const res = await fetch(`/api/instances/${name1}/connections/${name2}`);
+      const data = await res.json();
+      return networkSchema.parse(data);
+    },
+  });
+}
+
+export function useConnect(name1: string, name2: string) {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/instances/${name1}/connections/${name2}`, {
+        method: "put",
+      });
+      const data = await res.json();
+      if (res.status !== 200) {
+        throw new Error(data.Message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["instances", name1, "net", name2],
+      });
+      toast.success("Network connected!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+export function useDisconnect(name1: string, name2: string) {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/instances/${name1}/connections/${name2}`, {
+        method: "delete",
+      });
+      const data = await res.json();
+      if (res.status !== 200) {
+        throw new Error(data.Message);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["instances", name1, "net", name2],
+      });
+      toast.success("Network disconnected!");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+}

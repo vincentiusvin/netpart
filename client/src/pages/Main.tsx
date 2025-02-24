@@ -45,6 +45,9 @@ import { FormEventHandler, useState } from "react";
 import {
   InstanceSchema,
   useAddInstance,
+  useConnect,
+  useDisconnect,
+  useGetConnection,
   useInstanceData,
   useInstances,
   useKillInstance,
@@ -253,8 +256,25 @@ function Data(props: { data: InstanceSchema }) {
 
 function NetworkToggle(props: { instance1: string; instance2: string }) {
   const { instance1, instance2 } = props;
+  const { data: connect } = useGetConnection(instance1, instance2);
+  const { mutate: doConnect } = useConnect(instance1, instance2);
+  const { mutate: doDisconnect } = useDisconnect(instance1, instance2);
+  if (connect == undefined) {
+    return <Skeleton />;
+  }
 
-  return <Checkbox />;
+  return (
+    <Checkbox
+      checked={connect.Connected}
+      onClick={() => {
+        if (connect.Connected) {
+          doDisconnect();
+        } else {
+          doConnect();
+        }
+      }}
+    />
+  );
 }
 
 function Network() {
