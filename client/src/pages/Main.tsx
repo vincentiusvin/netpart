@@ -209,8 +209,8 @@ function Instance(props: { data: InstanceSchema }) {
             </div>
           ))}
         </div>
-        {/* <DataSubmission data={data} />
-        <Data data={data} /> */}
+        <DataSubmission data={data} />
+        <Data data={data} />
       </CardContent>
     </Card>
   );
