@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -70,9 +71,14 @@ func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 
 	defer conn.Close(ctx)
 
+	// replication slot name can only be numbers, alpha, and underscores.
+	sanitized_subscription := strings.ReplaceAll("sub_"+inst.Name, "-", "_")
+
 	sub := fmt.Sprintf(
-		"CREATE SUBSCRIPTION sub CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub;",
-		active.Name, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
+		"CREATE SUBSCRIPTION \"%v\" CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub;",
+		sanitized_subscription, active.Name, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
+
+	fmt.Println(sub)
 
 	_, err = conn.Exec(ctx, sub)
 	if err != nil {

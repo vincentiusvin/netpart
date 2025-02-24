@@ -111,7 +111,7 @@ func modifyInstanceHandler(c *control.ControlPlane) http.Handler {
 		}
 
 		if err != nil {
-			resp.Message = "unable to set node"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}
@@ -293,7 +293,7 @@ func getKeysHandler(c *control.ControlPlane) http.Handler {
 
 		vals, err := control.Get(ctx, inst)
 		if err != nil {
-			resp.Message = "unable to get values"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}
@@ -334,7 +334,7 @@ func putKeysHandler(c *control.ControlPlane) http.Handler {
 
 		err = control.Put(ctx, inst, key, value.Value)
 		if err != nil {
-			resp.Message = "unable to put value"
+			resp.Message = err.Error()
 			encode(w, r, http.StatusInternalServerError, resp)
 			return
 		}
