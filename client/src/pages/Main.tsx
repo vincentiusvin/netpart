@@ -52,6 +52,8 @@ import {
   usePutInstanceData,
 } from "./hooks.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { TabsContent } from "@radix-ui/react-tabs";
 
 interface AddInstanceForm extends HTMLFormElement {
   instance_name: HTMLInputElement;
@@ -275,7 +277,7 @@ function Network() {
         <TableRow>
           <TableHead />
           {data.map((x) => (
-            <TableHead key={x.Name} className="text-center">
+            <TableHead key={x.Name} className="text-center align-middle">
               {x.Name}
             </TableHead>
           ))}
@@ -307,19 +309,36 @@ function Network() {
   );
 }
 
-function Main() {
-  return <Network />;
+function Provision() {
   const { data } = useInstances();
   if (data == undefined) {
     return <Skeleton />;
   }
   return (
-    <div className="p-16">
+    <>
       <AddInstance />
       {data.map((x) => (
         <Instance key={x.Name} data={x} />
       ))}
-    </div>
+    </>
   );
+}
+
+function Main() {
+  return (
+    <Tabs defaultValue="provision" className="p-16">
+      <TabsList className="mb-8">
+        <TabsTrigger value="provision">Provision</TabsTrigger>
+        <TabsTrigger value="network">Network</TabsTrigger>
+      </TabsList>
+      <TabsContent value="provision">
+        <Provision />
+      </TabsContent>
+      <TabsContent value="network">
+        <Network />
+      </TabsContent>
+    </Tabs>
+  );
+  return <Network />;
 }
 export default Main;
