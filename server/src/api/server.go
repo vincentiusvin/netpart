@@ -28,6 +28,7 @@ func Run(ctx context.Context, addr string) {
 	r.Handle("/instances", addInstanceHandler(c, os.Getenv("POSTGRES_IMAGE"))).Methods("POST")
 	r.Handle("/instances/{name}", killInstanceHandler(c)).Methods("DELETE")
 	r.Handle("/instances/{name}", modifyInstanceHandler(c)).Methods("PUT")
+	r.Handle("/instances/{name}", getInstanceHandler(c)).Methods("GET")
 	r.Handle("/instances/{name1}/connections/{name2}", getConnectHandler(c)).Methods("GET")
 	r.Handle("/instances/{name1}/connections/{name2}", connectHandler(c)).Methods("PUT")
 	r.Handle("/instances/{name1}/connections/{name2}", disconnectHandler(c)).Methods("DELETE")

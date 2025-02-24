@@ -123,6 +123,39 @@ func modifyInstanceHandler(c *control.ControlPlane) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
+type GetInstanceReplicationSuccess = control.ReplicationData
+
+type GetInstanceReplicationFail struct {
+	Message string
+}
+
+func getInstanceHandler(c *control.ControlPlane) http.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		var resp GetInstanceReplicationFail
+
+		name := mux.Vars(r)["name"]
+		inst, err := c.GetInstance(ctx, name)
+		if err != nil {
+			resp.Message = fmt.Sprintf("could not find instance %v", name)
+			encode(w, r, http.StatusNotFound, resp)
+			return
+		}
+
+		data, err := control.GetReplicationData(ctx, inst)
+		if err != nil {
+			resp.Message = err.Error()
+			encode(w, r, http.StatusInternalServerError, resp)
+			return
+		}
+
+		resp.Message = "OK"
+		encode(w, r, http.StatusOK, data)
+	}
+
+	return http.HandlerFunc(handler)
+}
+
 type KillInstanceResponse struct {
 	Message string
 }

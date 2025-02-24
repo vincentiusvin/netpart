@@ -135,6 +135,11 @@ func TestPrimarySecondary(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+
+		_, err = getReplicationRequest(ctx, inst1.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
 	})
 
 	t.Run("setup standby", func(t *testing.T) {
@@ -142,6 +147,11 @@ func TestPrimarySecondary(t *testing.T) {
 			Standby:   true,
 			StandbyTo: inst1.Name,
 		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = getReplicationRequest(ctx, inst2.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -229,6 +239,35 @@ func modifyRequest(ctx context.Context, name string, body api.ModifyInstanceBody
 	}
 
 	val, err := decode[api.ModifyInstanceResponse](res)
+	if err != nil {
+		return resp, err
+	}
+	return val, nil
+}
+
+func getReplicationRequest(ctx context.Context, name string) (api.GetInstanceReplicationSuccess, error) {
+	var client http.Client
+	var resp api.GetInstanceReplicationSuccess
+
+	req, err := http.NewRequestWithContext(ctx, "GET", BASE_URL+"/instances/"+name, nil)
+	if err != nil {
+		return resp, err
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	if res.StatusCode != http.StatusOK {
+		val, err := decode[api.GetInstanceReplicationFail](res)
+		if err != nil {
+			return resp, fmt.Errorf("response not ok. got %v. cant parse: %w", res.StatusCode, err)
+		} else {
+			return resp, fmt.Errorf("response not ok. got %v. %v", res.StatusCode, val.Message)
+		}
+	}
+
+	val, err := decode[api.GetInstanceReplicationSuccess](res)
 	if err != nil {
 		return resp, err
 	}
