@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table.tsx";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
+import { TabsContent } from "@radix-ui/react-tabs";
 import {
   Ban,
   BetweenHorizonalEnd,
@@ -41,7 +44,7 @@ import {
   RadioReceiver,
   SatelliteDish,
 } from "lucide-react";
-import { FormEventHandler, useState } from "react";
+import React, { FormEventHandler, useState } from "react";
 import {
   InstanceSchema,
   useAddInstance,
@@ -49,14 +52,12 @@ import {
   useDisconnect,
   useGetConnection,
   useInstanceData,
+  useInstanceReplication,
   useInstances,
   useKillInstance,
   useModifyInstance,
   usePutInstanceData,
 } from "./hooks.tsx";
-import { Checkbox } from "@/components/ui/checkbox.tsx";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
-import { TabsContent } from "@radix-ui/react-tabs";
 
 interface AddInstanceForm extends HTMLFormElement {
   instance_name: HTMLInputElement;
@@ -152,6 +153,27 @@ function Instance(props: { data: InstanceSchema }) {
   const { data } = props;
   const { mutate: kill } = useKillInstance(data.Name);
   const { mutate: modify } = useModifyInstance(data.Name);
+  const { data: repl } = useInstanceReplication(data.Name, 1000);
+
+  const actives =
+    repl?.ActiveData.map((x) => ({
+      icon: <SatelliteDish />,
+      title: "Primary for " + x.Application_Name,
+      subtitle: x.State + " - " + x.Sync_State,
+    })) || [];
+
+  const passives =
+    repl?.StandbyData.map((x) => ({
+      icon: <RadioReceiver />,
+      title: "Standby for " + x.Subname,
+      subtitle: x.Subenabled ? "Enabled" : "Disabled",
+    })) || [];
+
+  const replData: {
+    icon: React.ReactNode;
+    title: string;
+    subtitle: string;
+  }[] = actives.concat(passives);
 
   return (
     <Card className="my-4">
@@ -176,10 +198,19 @@ function Instance(props: { data: InstanceSchema }) {
           <Ban />
           Kill
         </Button>
-        <div>
-          <DataSubmission data={data} />
+        <div className="mt-4">
+          {replData.map((x) => (
+            <div key={x.title} className="flex gap-4 items-center mt-2">
+              {x.icon}
+              <div>
+                <div className="font-semibold">{x.title}</div>
+                <div className="text-muted-foreground">{x.subtitle}</div>
+              </div>
+            </div>
+          ))}
         </div>
-        <Data data={data} />
+        {/* <DataSubmission data={data} />
+        <Data data={data} /> */}
       </CardContent>
     </Card>
   );

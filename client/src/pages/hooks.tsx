@@ -120,6 +120,34 @@ export function useInstanceData(name: string, refetch?: number) {
   });
 }
 
+const replicationSchema = z.object({
+  ActiveData: z
+    .object({
+      Application_Name: z.string(),
+      State: z.string(),
+      Sync_State: z.string(),
+    })
+    .array(),
+  StandbyData: z
+    .object({
+      Subname: z.string(),
+      Subenabled: z.boolean(),
+    })
+    .array(),
+});
+
+export function useInstanceReplication(name: string, refetch?: number) {
+  return useQuery({
+    queryKey: ["instances", name, "replication"],
+    refetchInterval: refetch,
+    queryFn: async () => {
+      const res = await fetch(`/api/instances/${name}`);
+      const data = await res.json();
+      return replicationSchema.parse(data);
+    },
+  });
+}
+
 type PutBody = {
   Key: string;
   Value: string;
