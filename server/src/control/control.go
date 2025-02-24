@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -29,8 +30,7 @@ type Instance struct {
 }
 
 type ControlPlane struct {
-	cli     *client.Client
-	servers []Instance
+	cli *client.Client
 }
 
 func MakeControlPlane(ctx context.Context, ops ...client.Opt) (*ControlPlane, error) {
@@ -124,13 +124,16 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string, image strin
 		return Instance{}, err
 	}
 
-	c.servers = append(c.servers, inst)
-
 	return inst, nil
 }
 
 func (c *ControlPlane) GetInstance(ctx context.Context, name string) (Instance, error) {
-	for _, c := range c.servers {
+	insts, err := c.ListInstances(ctx)
+	if err != nil {
+		return Instance{}, err
+	}
+
+	for _, c := range insts {
 		if c.Name == name {
 			return c, nil
 		}
@@ -183,6 +186,10 @@ func (c *ControlPlane) ListInstances(ctx context.Context) ([]Instance, error) {
 		}
 		ret = append(ret, *c)
 	}
+
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Name < ret[j].Name
+	})
 
 	return ret, nil
 }

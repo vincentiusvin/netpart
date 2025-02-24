@@ -178,6 +178,24 @@ func TestReplication(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	time.Sleep(1 * time.Second)
+
+	active_rep, err := control.GetReplicationData(ctx, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(active_rep.ActiveData) == 0 {
+		t.Fatalf("Did not detect replication data on primary!")
+	}
+
+	passive_rep, err := control.GetReplicationData(ctx, passive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(passive_rep.StandbyData) == 0 {
+		t.Fatalf("Did not detect replication data on standby!")
+	}
+
 	in_key := "test"
 	in_value := "val"
 

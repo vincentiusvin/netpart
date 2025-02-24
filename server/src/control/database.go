@@ -75,10 +75,8 @@ func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 	sanitized_subscription := strings.ReplaceAll("sub_"+inst.Name, "-", "_")
 
 	sub := fmt.Sprintf(
-		"CREATE SUBSCRIPTION \"%v\" CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub;",
+		"CREATE SUBSCRIPTION \"%v\" CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub WITH (disable_on_error = true);",
 		sanitized_subscription, active.Name, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
-
-	fmt.Println(sub)
 
 	_, err = conn.Exec(ctx, sub)
 	if err != nil {
@@ -118,15 +116,66 @@ func Get(ctx context.Context, inst Instance) ([]KV, error) {
 
 	defer conn.Close(ctx)
 
-	val, err := conn.Query(ctx, "SELECT (key, value) FROM kv ORDER BY key ASC")
+	val, err := conn.Query(ctx, "SELECT key, value FROM kv ORDER BY key ASC")
 	if err != nil {
 		return nil, err
 	}
 
-	kv, err := pgx.CollectRows(val, pgx.RowTo[KV])
+	kv, err := pgx.CollectRows(val, pgx.RowToStructByName[KV])
 	if err != nil {
 		return nil, err
 	}
 
 	return kv, nil
+}
+
+type ActiveData struct {
+	Application_Name string
+	State            string
+	Sync_State       string
+}
+
+type StandbyData struct {
+	Subname    string
+	Subenabled bool
+}
+
+type ReplicationData struct {
+	ActiveData  []ActiveData
+	StandbyData []StandbyData
+}
+
+func GetReplicationData(ctx context.Context, inst Instance) (ReplicationData, error) {
+	conn, err := getConn(ctx, inst.Port)
+	resp := ReplicationData{}
+	if err != nil {
+		return resp, err
+	}
+
+	defer conn.Close(ctx)
+
+	active_raw, err := conn.Query(ctx, "SELECT application_name, state, sync_state FROM pg_stat_replication;")
+	if err != nil {
+		return resp, fmt.Errorf("can't run active query: %w", err)
+	}
+
+	active_data, err := pgx.CollectRows(active_raw, pgx.RowToStructByName[ActiveData])
+	pgx.CollectRows(active_raw, pgx.RowTo[ActiveData])
+	if err != nil {
+		return resp, fmt.Errorf("can't marshall active query: %w", err)
+	}
+
+	standby_raw, err := conn.Query(ctx, "SELECT subname, subenabled FROM pg_subscription;")
+	if err != nil {
+		return resp, fmt.Errorf("can't run standby query: %w", err)
+	}
+	standby_data, err := pgx.CollectRows(standby_raw, pgx.RowToStructByName[StandbyData])
+	if err != nil {
+		return resp, fmt.Errorf("can't marshall standby query: %w", err)
+	}
+
+	return ReplicationData{
+		ActiveData:  active_data,
+		StandbyData: standby_data,
+	}, nil
 }
