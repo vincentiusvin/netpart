@@ -51,6 +51,7 @@ import {
   useModifyInstance,
   usePutInstanceData,
 } from "./hooks.tsx";
+import { Checkbox } from "@/components/ui/checkbox.tsx";
 
 interface AddInstanceForm extends HTMLFormElement {
   instance_name: HTMLInputElement;
@@ -248,7 +249,66 @@ function Data(props: { data: InstanceSchema }) {
   );
 }
 
+function NetworkToggle(props: { instance1: string; instance2: string }) {
+  const { instance1, instance2 } = props;
+
+  return <Checkbox />;
+}
+
+function Network() {
+  const { data } = useInstances();
+  if (data == undefined) {
+    return <Skeleton />;
+  }
+
+  const matrix = data.map((x, i) => {
+    return data.map((y, j) => ({
+      Enabled: i < j,
+      Node1: x.Name,
+      Node2: y.Name,
+    }));
+  });
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead />
+          {data.map((x) => (
+            <TableHead key={x.Name} className="text-center">
+              {x.Name}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {matrix.map((x, i) => (
+          <TableRow key={i}>
+            <TableCell
+              className={
+                "text-muted-foreground h-10 px-2 text-left align-middle font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]"
+              }
+            >
+              {data[i].Name}
+            </TableCell>
+            {x.map((y, j) => (
+              <TableCell className="text-center" key={j}>
+                {y.Enabled ? (
+                  <NetworkToggle instance1={y.Node1} instance2={y.Node2} />
+                ) : (
+                  "Redundant"
+                )}
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 function Main() {
+  return <Network />;
   const { data } = useInstances();
   if (data == undefined) {
     return <Skeleton />;
