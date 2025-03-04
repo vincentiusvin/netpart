@@ -71,6 +71,9 @@ type ModifyInstanceBody struct {
 
 	Standby   bool
 	StandbyTo string
+
+	Refresh   bool
+	RefreshTo string
 }
 
 type ModifyInstanceResponse struct {
@@ -108,6 +111,15 @@ func modifyInstanceHandler(c *control.ControlPlane) http.Handler {
 				return
 			}
 			err = control.SetupStandby(ctx, inst, primary)
+		} else if body.Refresh {
+			var primary control.Instance
+			primary, err = c.GetInstance(ctx, body.StandbyTo)
+			if err != nil {
+				resp.Message = fmt.Sprintf("unable to find primary %v", primary)
+				encode(w, r, http.StatusBadRequest, resp)
+				return
+			}
+			err = control.RestartStandby(ctx, inst, primary)
 		}
 
 		if err != nil {

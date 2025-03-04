@@ -156,6 +156,16 @@ func TestPrimarySecondary(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+
+	t.Run("enable standby", func(t *testing.T) {
+		_, err := modifyRequest(ctx, inst2.Name, api.ModifyInstanceBody{
+			Refresh:   true,
+			RefreshTo: inst1.Name,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestQueries(t *testing.T) {
