@@ -71,6 +71,7 @@ func (c *ControlPlane) AddInstance(ctx context.Context, name string, image strin
 
 	hostConfig := &container.HostConfig{
 		PortBindings: portMap,
+		CapAdd:       []string{"NET_ADMIN"},
 	}
 
 	ctr, err := c.cli.ContainerCreate(ctx, &container.Config{
