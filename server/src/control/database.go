@@ -90,6 +90,31 @@ func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 	return nil
 }
 
+func RestartStandby(ctx context.Context, inst Instance, active Instance) error {
+	conn, err := getConn(ctx, inst.Port)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close(ctx)
+
+	// replication slot name can only be numbers, alpha, and underscores.
+	sanitized_subscription := strings.ReplaceAll("sub_"+inst.Name, "-", "_")
+
+	// TODO:
+	// this is vulnerable to sql injection actually
+	// but you can't turn create subscription into a prepared statement
+	sub := fmt.Sprintf("ALTER SUBSCRIPTION \"%v\" ENABLE", sanitized_subscription)
+
+	_, err = conn.Exec(ctx, sub)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("standby restarted at %v\n", inst.Name)
+	return nil
+}
+
 func Put(ctx context.Context, inst Instance, key string, value string) error {
 	conn, err := getConn(ctx, inst.Port)
 	if err != nil {

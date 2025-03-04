@@ -276,6 +276,47 @@ func TestDisconnection(t *testing.T) {
 	}
 }
 
+// kinda difficult to replicate a disconnected db
+// so just test that it doesn't error
+func TestRestart(t *testing.T) {
+	ctx := context.Background()
+
+	err := c.Cleanup(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	active, err := c.AddInstance(ctx, "db1", os.Getenv("POSTGRES_IMAGE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	passive, err := c.AddInstance(ctx, "db2", os.Getenv("POSTGRES_IMAGE"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = c.Connect(ctx, active, passive)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = control.SetupPrimary(ctx, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = control.SetupStandby(ctx, passive, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = control.RestartStandby(ctx, passive, active)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func findVal(inst control.Instance, key string, value string) error {
 	ctx := context.Background()
 	val, err := control.Get(ctx, inst)
