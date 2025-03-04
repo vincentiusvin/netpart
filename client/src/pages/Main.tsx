@@ -103,13 +103,21 @@ function StandbyDialog(props: { data: InstanceSchema }) {
   const { mutate: modify } = useModifyInstance(data.Name);
   const { data: leaderOptions } = useInstances();
   const [leader, setLeader] = useState("");
+  const [enable, setEnable] = useState(false);
 
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
-    modify({
-      Standby: true,
-      StandbyTo: leader,
-    });
+    if (enable) {
+      modify({
+        Refresh: true,
+        RefreshTo: leader,
+      });
+    } else {
+      modify({
+        Standby: true,
+        StandbyTo: leader,
+      });
+    }
   };
 
   return (
@@ -138,6 +146,14 @@ function StandbyDialog(props: { data: InstanceSchema }) {
                   ))}
                 </SelectContent>
               </Select>
+              <br />
+              <Label htmlFor="text">Refresh: </Label>
+              <Checkbox
+                checked={enable}
+                onClick={() => {
+                  setEnable((x) => !x);
+                }}
+              />
             </DialogDescription>
             <DialogFooter>
               <Button type="submit">Submit</Button>

@@ -113,7 +113,7 @@ func modifyInstanceHandler(c *control.ControlPlane) http.Handler {
 			err = control.SetupStandby(ctx, inst, primary)
 		} else if body.Refresh {
 			var primary control.Instance
-			primary, err = c.GetInstance(ctx, body.StandbyTo)
+			primary, err = c.GetInstance(ctx, body.RefreshTo)
 			if err != nil {
 				resp.Message = fmt.Sprintf("unable to find primary %v", primary)
 				encode(w, r, http.StatusBadRequest, resp)

@@ -77,6 +77,10 @@ type ModifyBody =
   | {
       Standby: boolean;
       StandbyTo: string;
+    }
+  | {
+      Refresh: boolean;
+      RefreshTo: string;
     };
 
 export function useModifyInstance(name: string) {
