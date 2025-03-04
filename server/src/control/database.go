@@ -74,6 +74,9 @@ func SetupStandby(ctx context.Context, inst Instance, active Instance) error {
 	// replication slot name can only be numbers, alpha, and underscores.
 	sanitized_subscription := strings.ReplaceAll("sub_"+inst.Name, "-", "_")
 
+	// TODO:
+	// this is vulnerable to sql injection actually
+	// but you can't turn create subscription into a prepared statement
 	sub := fmt.Sprintf(
 		"CREATE SUBSCRIPTION \"%v\" CONNECTION 'host=%v dbname=%v user=%v password=%v' PUBLICATION pub WITH (disable_on_error = true);",
 		sanitized_subscription, active.Name, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD)
